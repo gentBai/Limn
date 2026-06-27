@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Reader 原型预览</title>
+  <link rel="stylesheet" href="./prototype.css">
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <h1>AI Reader <span class="text-tertiary text-sm font-normal">· Chrome 扩展原型</span></h1>
+      <p>高保真原型预览。极简专业风格，基于 Chrome sidePanel 设计。下面按界面分区展示所有状态。</p>
+    </header>
+
+    <!-- ============ 第一部分：sidePanel 完整状态 ============ -->
+    <section class="section">
+      <div class="section-title">
+        <span class="section-num">01</span>
+        <div>
+          <h2>侧边栏 (sidePanel)</h2>
+          <p>主交互界面。宽度模拟 Chrome sidePanel（360px~可拖宽）。展示 5 种关键状态。</p>
+        </div>
+      </div>
+
+      <div class="frame-grid">
+
+        <!-- 状态 1: 空状态 (未配置) -->
+        <div class="frame-cell">
+          <div class="frame-label">① 空状态 · 未配置 API Key</div>
+          <div class="sidepanel-frame">
+            <header class="sp-header">
+              <div class="sp-header-left">
+                <span class="sp-logo">📓 AI Reader</span>
+              </div>
+              <div class="sp-header-actions">
+                <button class="btn btn-ghost btn-sm" title="设置">⚙</button>
+              </div>
+            </header>
+            <nav class="sp-tabs">
+              <button class="sp-tab active">摘要</button>
+              <button class="sp-tab">翻译</button>
+              <button class="sp-tab">对话</button>
+            </nav>
+            <div class="sp-content">
+              <div class="empty-state">
+                <div class="empty-state-icon">🔑</div>
+                <div class="empty-state-title">开始使用前需配置模型</div>
+                <div class="empty-state-desc">添加你的 API Key 即可开始摘要、翻译网页内容。数据仅存储在本地浏览器。</div>
+                <div style="margin-top: 16px;">
+                  <button class="btn btn-primary btn-lg">前往配置</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 状态 2: 摘要 - 就绪态 -->
+        <div class="frame-cell">
+          <div class="frame-label">② 摘要 · 就绪态</div>
+          <div class="sidepanel-frame">
+            <header class="sp-header">
+              <div class="sp-header-left">
+                <span class="sp-logo">📓 AI Reader</span>
+              </div>
+              <div class="sp-header-actions">
+                <div class="provider-select">
+                  <span class="dot"></span>
+                  <span>DeepSeek</span>
+                  <span>▾</span>
+                </div>
+                <button class="btn btn-ghost btn-sm">⚙</button>
+              </div>
+            </header>
+            <nav class="sp-tabs">
+              <button class="sp-tab active">摘要</button>
+              <button class="sp-tab">翻译</button>
+              <button class="sp-tab">对话</button>
+            </nav>
+            <div class="sp-content">
+              <div class="page-info">
+                <div class="page-info-icon">📄</div>
+                <div class="page-info-meta">
+                  <div class="page-info-title">OpenAI announces GPT-5 with improved reasoning capabilities</div>
+                  <div class="page-info-stats">
+                    <span class="badge">bbc.com</span>
+                    <span class="badge">🇬🇧 英文</span>
+                    <span class="badge">3,200 字</span>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-lg btn-block">
+                ⚡ 一键生成摘要
+              </button>
+              <p class="text-xs text-tertiary" style="text-align:center; margin-top: var(--space-3);">
+                基于网页正文智能抽取 · 输出结构化中文摘要
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 状态 3: 摘要 - 加载/流式输出 -->
+        <div class="frame-cell">
+          <div class="frame-label">③ 摘要 · 流式生成中</div>
+          <div class="sidepanel-frame">
+            <header class="sp-header">
+              <div class="sp-header-left">
+                <span class="sp-logo">📓 AI Reader</span>
+              </div>
+              <div class="sp-header-actions">
+                <div class="provider-select">
+                  <span class="dot"></span>
+                  <span>DeepSeek</span>
+                  <span>▾</span>
+                </div>
+                <button class="btn btn-ghost btn-sm">⚙</button>
+              </div>
+            </header>
+            <nav class="sp-tabs">
+              <button class="sp-tab active">摘要</button>
+              <button class="sp-tab">翻译</button>
+              <button class="sp-tab">对话</button>
+            </nav>
+            <div class="sp-content">
+              <div class="page-info">
+                <div class="page-info-icon">📄</div>
+                <div class="page-info-meta">
+                  <div class="page-info-title">OpenAI announces GPT-5 with improved reasoning...</div>
+                  <div class="page-info-stats">
+                    <span class="badge">bbc.com</span>
+                    <span class="badge">🇬🇧 英文</span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom: 12px;">
+                <span class="loading-dots"><span></span><span></span><span></span></span>
+                <span class="text-xs text-tertiary">正在分析网页内容...</span>
+              </div>
+              <div class="summary-section">
+                <div class="summary-section-title">核心观点</div>
+                <ul class="summary-bullets">
+                  <li class="streaming-text">OpenAI 发布了 GPT-5，在数学推理和代码生成上显著提升</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 状态 4: 摘要 - 完成 -->
+        <div class="frame-cell">
+          <div class="frame-label">④ 摘要 · 生成完成</div>
+          <div class="sidepanel-frame">
+            <header class="sp-header">
+              <div class="sp-header-left">
+                <span class="sp-logo">📓 AI Reader</span>
+              </div>
+              <div class="sp-header-actions">
+                <div class="provider-select">
+                  <span class="dot"></span>
+                  <span>DeepSeek</span>
+                  <span>▾</span>
+                </div>
+                <button class="btn btn-ghost btn-sm">⚙</button>
+              </div>
+            </header>
+            <nav class="sp-tabs">
+              <button class="sp-tab active">摘要</button>
+              <button class="sp-tab">翻译</button>
+              <button class="sp-tab">对话</button>
+            </nav>
+            <div class="sp-content">
+              <div class="page-info">
+                <div class="page-info-icon">📄</div>
+                <div class="page-info-meta">
+                  <div class="page-info-title">OpenAI announces GPT-5 with improved reasoning capabilities</div>
+                  <div class="page-info-stats">
+                    <span class="badge">bbc.com</span>
+                    <span class="badge">🇬🇧 英文</span>
+                    <span class="badge">3,200 字</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="summary-section">
+                <div class="summary-section-title">📌 核心观点</div>
+                <ul class="summary-bullets">
+                  <li>OpenAI 发布了 GPT-5，在数学推理和代码生成上较前代显著提升。</li>
+                  <li>新模型支持原生多模态输入，可同时处理图像、音频和文本。</li>
+                  <li>推理成本降低 60%，但响应延迟略有增加。</li>
+                </ul>
+              </div>
+
+              <div class="summary-section">
+                <div class="summary-section-title">🔑 关键要点</div>
+                <ul class="summary-bullets">
+                  <li>数学基准测试 GSM8K 得分从 92% 提升至 96%。</li>
+                  <li>新增"思考链"可视化，用户可观察推理过程。</li>
+                </ul>
+              </div>
+
+              <div class="summary-section">
+                <div class="summary-section-title">👥 适用人群</div>
+                <ul class="summary-bullets">
+                  <li>需要复杂推理的开发者和研究人员。</li>
+                </ul>
+              </div>
+
+              <div class="action-bar">
+                <button class="btn btn-secondary btn-sm">📋 复制</button>
+                <button class="btn btn-secondary btn-sm">🔄 重新生成</button>
+                <button class="btn btn-ghost btn-sm" style="margin-left:auto;">💬 追问</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 状态 5: 翻译视图 -->
+        <div class="frame-cell">
+          <div class="frame-label">⑤ 翻译 · 划词结果汇聚</div>
+          <div class="sidepanel-frame">
+            <header class="sp-header">
+              <div class="sp-header-left">
+                <span class="sp-logo">📓 AI Reader</span>
+              </div>
+              <div class="sp-header-actions">
+                <div class="provider-select">
+                  <span class="dot"></span>
+                  <span>DeepSeek</span>
+                  <span>▾</span>
+                </div>
+                <button class="btn btn-ghost btn-sm">⚙</button>
+              </div>
+            </header>
+            <nav class="sp-tabs">
+              <button class="sp-tab">摘要</button>
+              <button class="sp-tab active">翻译</button>
+              <button class="sp-tab">对话</button>
+            </nav>
+            <div class="sp-content">
+              <div class="page-info">
+                <div class="page-info-icon">📄</div>
+                <div class="page-info-meta">
+                  <div class="page-info-title">OpenAI announces GPT-5...</div>
+                </div>
+              </div>
+
+              <div style="margin-bottom: 12px;">
+                <div class="translate-source">
+                  "The new model achieves state-of-the-art performance on reasoning benchmarks while reducing inference costs by 60 percent."
+                </div>
+                <div class="translate-target">
+                  新模型在推理基准测试中达到业界领先水平，同时将推理成本降低了 60%。
+                </div>
+              </div>
+
+              <div style="margin-bottom: 12px;">
+                <div class="translate-source">
+                  "Chain-of-thought visualization allows users to observe the reasoning process."
+                </div>
+                <div class="translate-target">
+                  思考链可视化功能允许用户观察推理过程。
+                </div>
+              </div>
+
+              <div class="action-bar">
+                <button class="btn btn-secondary btn-sm">🌐 翻译全文</button>
+                <button class="btn btn-ghost btn-sm">🗑 清空</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 状态 6: 对话视图 -->
+        <div class="frame-cell">
+          <div class="frame-label">⑥ 对话 · 多轮追问</div>
+          <div class="sidepanel-frame">
+            <header class="sp-header">
+              <div class="sp-header-left">
+                <span class="sp-logo">📓 AI Reader</span>
+              </div>
+              <div class="sp-header-actions">
+                <div class="provider-select">
+                  <span class="dot"></span>
+                  <span>DeepSeek</span>
+                  <span>▾</span>
+                </div>
+                <button class="btn btn-ghost btn-sm">⚙</button>
+              </div>
+            </header>
+            <nav class="sp-tabs">
+              <button class="sp-tab">摘要</button>
+              <button class="sp-tab">翻译</button>
+              <button class="sp-tab active">对话</button>
+            </nav>
+            <div class="sp-content" style="display:flex; flex-direction:column;">
+              <div class="chat-messages" style="flex:1;">
+                <div class="chat-msg chat-msg-user">
+                  <div class="chat-msg-bubble">这个模型的推理成本降低是怎么做到的？</div>
+                </div>
+                <div class="chat-msg chat-msg-ai">
+                  <div class="chat-msg-avatar ai">AI</div>
+                  <div class="chat-msg-bubble">
+                    根据文章，OpenAI 通过三个手段降低推理成本：
+                    <br><br>
+                    1. <strong>模型蒸馏</strong>：用大模型训练更高效的小模型架构<br>
+                    2. <strong>量化技术</strong>：将模型参数从 16 位压缩到 8 位<br>
+                    3. <strong>投机解码</strong>：用小模型预测，大模型验证
+                    <br><br>
+                    综合下来推理成本降低了约 60%。
+                  </div>
+                </div>
+                <div class="chat-msg chat-msg-user">
+                  <div class="chat-msg-bubble">延迟增加会影响哪些场景？</div>
+                </div>
+                <div class="chat-msg chat-msg-ai">
+                  <div class="chat-msg-avatar ai">AI</div>
+                  <div class="chat-msg-bubble streaming-text">主要影响实时对话和流式输出场景，对于离线分析任务影响较小</div>
+                </div>
+              </div>
+
+              <div class="chat-input-area">
+                <textarea rows="1" placeholder="基于当前网页提问..."></textarea>
+                <button class="chat-send-btn">➤</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 第二部分：划词气泡 ============ -->
+    <section class="section">
+      <div class="section-title">
+        <span class="section-num">02</span>
+        <div>
+          <h2>划词气泡 (content-script)</h2>
+          <p>用户在网页选中文字后浮现。两种状态：触发按钮、展开翻译。</p>
+        </div>
+      </div>
+
+      <div class="frame-grid frame-grid-2">
+        <!-- 气泡触发态 -->
+        <div class="frame-cell">
+          <div class="frame-label">① 选中文字 → 浮现翻译按钮</div>
+          <div class="webpage-mock">
+            <h2>GPT-5 Announcement</h2>
+            <p>
+              The new model achieves <span class="selected-text">state-of-the-art performance on reasoning benchmarks<span class="selection-bubble">🌐 翻译</span></span>
+              while reducing inference costs by 60 percent.
+            </p>
+            <p>
+              Chain-of-thought visualization allows users to observe the reasoning process in real time.
+            </p>
+          </div>
+        </div>
+
+        <!-- 气泡展开态 -->
+        <div class="frame-cell">
+          <div class="frame-label">② 点击后 → 展开翻译结果</div>
+          <div class="webpage-mock">
+            <h2>GPT-5 Announcement</h2>
+            <p>
+              The new model achieves <span class="selected-text">state-of-the-art performance on reasoning benchmarks</span>
+              while reducing inference costs by 60 percent.
+              <span class="translate-popup" style="top: 100%; left: 0; margin-top: 8px;">
+                <div class="translate-popup-header">
+                  <span class="translate-popup-lang">英文 → 中文</span>
+                  <span class="badge badge-success">DeepSeek</span>
+                </div>
+                <div class="translate-popup-source">"state-of-the-art performance on reasoning benchmarks"</div>
+                <div class="translate-popup-result">在推理基准测试中达到业界领先水平</div>
+                <div class="translate-popup-actions">
+                  <button class="btn btn-ghost btn-sm">📋</button>
+                  <button class="btn btn-ghost btn-sm">↗ 发送到侧栏</button>
+                  <button class="btn btn-ghost btn-sm" style="margin-left:auto;">✕</button>
+                </div>
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 第三部分：设置页 ============ -->
+    <section class="section">
+      <div class="section-title">
+        <span class="section-num">03</span>
+        <div>
+          <h2>设置页 (options)</h2>
+          <p>从扩展管理页或侧边栏"设置"按钮进入。配置模型、API Key、偏好。</p>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:center;">
+        <div class="options-frame">
+          <header class="options-header">
+            <h1>设置</h1>
+            <p>配置 AI Reader 的模型接入和阅读偏好。API Key 仅存储在本地浏览器，不会上传。</p>
+          </header>
+
+          <div class="options-body">
+            <!-- 模型提供商 -->
+            <div class="settings-group">
+              <div class="settings-group-title">模型提供商</div>
+              <div class="settings-group-desc">选择默认使用的大模型。可同时配置多个，随时切换。</div>
+
+              <div class="provider-list">
+                <div class="provider-card active">
+                  <div class="provider-card-left">
+                    <div class="provider-card-icon" style="background:#e0f2fe; color:#0284c7;">🦅</div>
+                    <div>
+                      <div class="provider-card-name">DeepSeek</div>
+                      <div class="provider-card-desc">deepseek-chat · 性价比高</div>
+                    </div>
+                  </div>
+                  <span class="badge badge-success">● 使用中</span>
+                </div>
+
+                <div class="provider-card">
+                  <div class="provider-card-left">
+                    <div class="provider-card-icon" style="background:#fef3c7; color:#d97706;">🔮</div>
+                    <div>
+                      <div class="provider-card-name">智谱 GLM</div>
+                      <div class="provider-card-desc">glm-4 · 国产优选</div>
+                    </div>
+                  </div>
+                  <span class="badge">已配置</span>
+                </div>
+
+                <div class="provider-card">
+                  <div class="provider-card-left">
+                    <div class="provider-card-icon" style="background:#f3e8ff; color:#7c3aed;">🟢</div>
+                    <div>
+                      <div class="provider-card-name">Ollama (本地)</div>
+                      <div class="provider-card-desc">llama3 · 离线 · 数据不出本机</div>
+                    </div>
+                  </div>
+                  <span class="badge badge-warning">未连接</span>
+                </div>
+
+                <div class="provider-card">
+                  <div class="provider-card-left">
+                    <div class="provider-card-icon" style="background:var(--color-bg-muted); color:var(--color-text-tertiary);">+</div>
+                    <div>
+                      <div class="provider-card-name">自定义提供商</div>
+                      <div class="provider-card-desc">支持任意 OpenAI 兼容 API</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- API Key -->
+            <div class="settings-group">
+              <div class="settings-group-title">API Key · DeepSeek</div>
+              <div class="settings-group-desc">从 <span class="mono">platform.deepseek.com</span> 获取。仅存本地，不同步云端。</div>
+
+              <div class="apikey-input-wrap">
+                <input type="password" class="apikey-input" value="sk-abcdef1234567890abcdef" />
+                <button class="apikey-toggle">👁</button>
+              </div>
+              <button class="btn btn-secondary btn-sm" style="margin-top:8px;">✓ 测试连接</button>
+            </div>
+
+            <!-- 阅读偏好 -->
+            <div class="settings-group">
+              <div class="settings-group-title">阅读偏好</div>
+
+              <div class="setting-row">
+                <span class="setting-row-label">翻译目标语言</span>
+                <div class="setting-row-control">
+                  <select class="input" style="width:auto;">
+                    <option>中文（简体）</option>
+                    <option>中文（繁体）</option>
+                    <option>English</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <span class="setting-row-label">摘要详细程度</span>
+                <div class="setting-row-control">
+                  <select class="input" style="width:auto;">
+                    <option>标准</option>
+                    <option>简洁</option>
+                    <option>详细</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <span class="setting-row-label">启用划词翻译</span>
+                <div class="setting-row-control">
+                  <div class="switch on"></div>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <span class="setting-row-label">流式输出</span>
+                <div class="setting-row-control">
+                  <div class="switch on"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <footer class="options-footer">
+            <button class="btn btn-ghost">取消</button>
+            <button class="btn btn-primary">保存设置</button>
+          </footer>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 第四部分：错误状态 ============ -->
+    <section class="section">
+      <div class="section-title">
+        <span class="section-num">04</span>
+        <div>
+          <h2>错误状态</h2>
+          <p>关键错误的用户可见处理。永远不展示原始堆栈，每个错误附带可执行建议。</p>
+        </div>
+      </div>
+
+      <div class="frame-grid">
+        <div class="frame-cell">
+          <div class="frame-label">① API Key 无效</div>
+          <div class="sidepanel-frame">
+            <header class="sp-header">
+              <div class="sp-header-left"><span class="sp-logo">📓 AI Reader</span></div>
+            </header>
+            <nav class="sp-tabs">
+              <button class="sp-tab active">摘要</button>
+              <button class="sp-tab">翻译</button>
+              <button class="sp-tab">对话</button>
+            </nav>
+            <div class="sp-content">
+              <div class="error-box">
+                <div class="error-box-icon">🔑</div>
+                <div class="error-box-title">API Key 无效或已过期</div>
+                <div class="error-box-desc">当前配置的 DeepSeek API Key 无法通过验证，请检查是否正确或已过期。</div>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn btn-primary btn-sm">前往设置</button>
+                  <button class="btn btn-secondary btn-sm">重新测试</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="frame-cell">
+          <div class="frame-label">② 页面不支持</div>
+          <div class="sidepanel-frame">
+            <header class="sp-header">
+              <div class="sp-header-left"><span class="sp-logo">📓 AI Reader</span></div>
+            </header>
+            <nav class="sp-tabs">
+              <button class="sp-tab active">摘要</button>
+              <button class="sp-tab">翻译</button>
+              <button class="sp-tab">对话</button>
+            </nav>
+            <div class="sp-content">
+              <div class="empty-state">
+                <div class="empty-state-icon">🚫</div>
+                <div class="empty-state-title">当前页面不支持</div>
+                <div class="empty-state-desc">浏览器内置页面（如 chrome:// 设置页）无法注入内容脚本。请在普通网页上使用。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="frame-cell">
+          <div class="frame-label">③ 网络错误</div>
+          <div class="sidepanel-frame">
+            <header class="sp-header">
+              <div class="sp-header-left"><span class="sp-logo">📓 AI Reader</span></div>
+            </header>
+            <nav class="sp-tabs">
+              <button class="sp-tab active">摘要</button>
+              <button class="sp-tab">翻译</button>
+              <button class="sp-tab">对话</button>
+            </nav>
+            <div class="sp-content">
+              <div class="error-box">
+                <div class="error-box-icon">📡</div>
+                <div class="error-box-title">网络连接失败</div>
+                <div class="error-box-desc">无法连接到模型服务。请检查网络或代理设置后重试。</div>
+                <button class="btn btn-primary btn-sm">重试</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 第五部分：设计规范 ============ -->
+    <section class="section">
+      <div class="section-title">
+        <span class="section-num">05</span>
+        <div>
+          <h2>设计规范 (Design Tokens)</h2>
+          <p>配色、字体、间距等基础变量。后续迁移到 React 项目的 CSS 变量中复用。</p>
+        </div>
+      </div>
+
+      <div class="frame-cell">
+        <div class="spec-panel">
+          <h3 style="margin-bottom:12px;">色彩系统</h3>
+          <div class="color-grid">
+            <div class="color-item"><div class="color-swatch" style="background:#4f46e5"></div>主色 Primary</div>
+            <div class="color-item"><div class="color-swatch" style="background:#1c1917"></div>主文本 Text</div>
+            <div class="color-item"><div class="color-swatch" style="background:#57534e"></div>次文本 Secondary</div>
+            <div class="color-item"><div class="color-swatch" style="background:#fafaf9; border:1px solid #e7e5e4;"></div>次背景 Subtle</div>
+            <div class="color-item"><div class="color-swatch" style="background:#16a34a"></div>成功 Success</div>
+            <div class="color-item"><div class="color-swatch" style="background:#dc2626"></div>错误 Error</div>
+            <div class="color-item"><div class="color-swatch" style="background:#d97706"></div>警告 Warning</div>
+            <div class="color-item"><div class="color-swatch" style="background:#0284c7"></div>信息 Info</div>
+          </div>
+
+          <h3 style="margin:24px 0 12px;">字号层级</h3>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div><span style="font-size:24px; font-weight:600;">Heading</span> <span class="text-tertiary text-xs">24px / 600</span></div>
+            <div><span style="font-size:17px; font-weight:600;">Title</span> <span class="text-tertiary text-xs">17px / 600</span></div>
+            <div><span style="font-size:15px; font-weight:500;">Subtitle</span> <span class="text-tertiary text-xs">15px / 500</span></div>
+            <div><span style="font-size:14px;">Body</span> <span class="text-tertiary text-xs">14px / 400</span></div>
+            <div><span style="font-size:13px;">Body Small</span> <span class="text-tertiary text-xs">13px / 400</span></div>
+            <div><span style="font-size:11px;">Caption</span> <span class="text-tertiary text-xs">11px / 400</span></div>
+          </div>
+
+          <h3 style="margin:24px 0 12px;">圆角 / 阴影</h3>
+          <div style="display:flex; gap:12px;">
+            <div style="text-align:center;">
+              <div style="width:48px;height:48px;background:var(--color-primary);border-radius:4px;"></div>
+              <div class="text-xs text-tertiary" style="margin-top:4px;">4px</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="width:48px;height:48px;background:var(--color-primary);border-radius:8px;"></div>
+              <div class="text-xs text-tertiary" style="margin-top:4px;">8px</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="width:48px;height:48px;background:var(--color-primary);border-radius:12px;box-shadow:var(--shadow-md);"></div>
+              <div class="text-xs text-tertiary" style="margin-top:4px;">12px + shadow</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <p>AI Reader 原型 v1 · 2026-06-24 · 极简专业风格</p>
+      <p class="text-tertiary text-xs">下一步：用户确认原型 → 调用 writing-plans 生成实施计划 → 编码实现</p>
+    </footer>
+  </div>
+</body>
+</html>

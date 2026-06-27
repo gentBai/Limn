@@ -1,0 +1,32 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Limn logo — "火与书" 双关（日间浅底配色）
+    火焰外轮廓 = illuminate（照亮）；中央负空间翻开的书 = limn（手抄本彩饰）
+  -->
+  <defs>
+    <linearGradient id="flame" x1="64" y1="22" x2="64" y2="106" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD84D"/>
+      <stop offset="0.55" stop-color="#FF9F1C"/>
+      <stop offset="1" stop-color="#FF6B00"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 淡紫白底 -->
+  <rect width="128" height="128" rx="28" fill="#F4F1FF"/>
+
+  <!-- 火焰：上尖、两侧外凸、底部圆润（同时隐喻翻开的书页向上展开） -->
+  <path
+    d="M64 22 C64 22 96 46 96 80 C96 96 82 106 64 106 C46 106 32 96 32 80 C32 46 64 22 64 22 Z"
+    fill="url(#flame)"/>
+
+  <!-- 火焰尖高光 -->
+  <ellipse cx="64" cy="40" rx="10" ry="14" fill="#FFFFFF" fill-opacity="0.40"/>
+
+  <!-- 负空间：翻开的书（镂空成背景色，双关 limn = 手抄本） -->
+  <path
+    d="M64 90 C58 86 50 82 46 76 L48 64 C56 69 62 72 64 73 C66 72 72 69 80 64 L82 76 C78 82 70 86 64 90 Z"
+    fill="#F4F1FF"/>
+
+  <!-- 书脊高光：浅底上用深棕描边，强化"翻开"的折痕 -->
+  <path d="M64 73 L64 90" stroke="#7A5C2A" stroke-opacity="0.35" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

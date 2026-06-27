@@ -1,0 +1,31 @@
+/* host 容器：不占文档流空间，作为 absolute 定位基准 */
+.ar-host {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none; /* 容器本身不拦截事件，让气泡自己响应 */
+  z-index: 2147483647;
+}
+
+.ar-bubble {
+  position: absolute;
+  background: #4f46e5;
+  color: #fff;
+  font: 500 12px/1 -apple-system, "Segoe UI", "PingFang SC", sans-serif;
+  padding: 6px 10px;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(28, 25, 23, 0.2);
+  cursor: pointer;
+  max-width: 320px;
+  white-space: normal;
+  pointer-events: auto; /* 气泡本身需要响应点击 */
+}
+.ar-bubble.ar-expanded {
+  background: #fff;
+  color: #1c1917;
+  border: 1px solid #e7e5e4;
+  font-size: 13px;
+  line-height: 1.5;
+}
