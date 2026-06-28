@@ -105,29 +105,18 @@ export function AskView({
           </div>
         ))}
 
-        {/* streaming reply bubble (sidebar follow-up) */}
-        {streamingStatus === 'streaming' && (
+        {/* assistant thinking/replying bubble.
+            Covers both sidebar follow-ups (streaming) and selections (pending):
+            - no reply yet -> 'Thinking' + dots animation
+            - reply streaming in -> the accumulating text */}
+        {(streamingStatus === 'streaming' || showPending) && (
           <div className="chat-msg chat-msg-ai">
             <div className="chat-msg-avatar-wrapper">
               <Avatar role="assistant" />
             </div>
             <div className="chat-msg-body">
-              <div className="chat-msg-bubble chat-msg-bubble-ai">
-                {streamingReply || '...'}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* pending bubble: last message is from user, AI is thinking (e.g. after a selection) */}
-        {showPending && (
-          <div className="chat-msg chat-msg-ai">
-            <div className="chat-msg-avatar-wrapper">
-              <Avatar role="assistant" />
-            </div>
-            <div className="chat-msg-body">
-              <div className="chat-msg-bubble chat-msg-bubble-ai chat-msg-pending">
-                {t('ask.thinking')}
+              <div className={`chat-msg-bubble chat-msg-bubble-ai${!streamingReply ? ' chat-msg-pending' : ''}`}>
+                {streamingReply || t('ask.thinking')}
               </div>
             </div>
           </div>
