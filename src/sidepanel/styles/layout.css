@@ -8,7 +8,14 @@
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
-.sp-logo { font-size: var(--text-md); font-weight: var(--font-semibold); }
+.sp-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+}
+.sp-logo-img { width: 20px; height: 20px; }
 
 .sp-tabs {
   display: flex;
