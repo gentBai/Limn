@@ -48,8 +48,8 @@ export class AskBubble {
     this.bubble.style.left = `${rect.left + window.scrollX + rect.width / 2 - 30}px`;
     this.bubble.textContent = t('bubble.ask');
     this.bubble.onclick = async () => {
-      this.bubble.textContent = t('bubble.asking');
       this.bubble.classList.add('ar-expanded');
+      this.bubble.innerHTML = `<span class="ar-thinking">${t('bubble.asking')}</span>`;
       try {
         const answer = await this.ask(text, (partial) => {
           // Stream-fill the bubble with the full reply (no truncation)

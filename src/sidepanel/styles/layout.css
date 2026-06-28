@@ -228,3 +228,12 @@
   justify-content: center;
 }
 .ask-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* token usage — single compact row below the action bar */
+.token-usage-row {
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.token-usage-sep { margin: 0 var(--space-1); opacity: 0.5; }

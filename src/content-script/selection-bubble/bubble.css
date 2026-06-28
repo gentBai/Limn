@@ -36,6 +36,27 @@
   white-space: pre-wrap;
 }
 
+/* "thinking" loading state */
+.ar-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #a8a29e;
+}
+.ar-thinking::after {
+  content: '';
+  width: 14px;
+  height: 6px;
+  background-image: radial-gradient(circle, #a8a29e 2px, transparent 2px);
+  background-size: 6px 6px;
+  background-repeat: repeat-x;
+  animation: ar-bounce 1.4s infinite ease-in-out both;
+}
+@keyframes ar-bounce {
+  0%, 80%, 100% { opacity: 0.3; }
+  40% { opacity: 1; }
+}
+
 /* thin scrollbar inside the expanded bubble */
 .ar-bubble.ar-expanded::-webkit-scrollbar { width: 6px; }
 .ar-bubble.ar-expanded::-webkit-scrollbar-thumb {

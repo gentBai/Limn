@@ -35,7 +35,7 @@ export const zh = {
 
   // Selection bubble
   'bubble.ask': '🌐 问一问',
-  'bubble.asking': '...',
+  'bubble.asking': '思考中',
   'bubble.failed': '解读失败',
 
   // Options page

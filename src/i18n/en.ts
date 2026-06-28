@@ -37,7 +37,7 @@ export const en: Messages = {
 
   // Selection bubble
   'bubble.ask': '🌐 Ask',
-  'bubble.asking': '...',
+  'bubble.asking': 'Thinking',
   'bubble.failed': 'Interpretation failed',
 
   // Options page

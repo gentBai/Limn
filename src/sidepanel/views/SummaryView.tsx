@@ -65,16 +65,13 @@ export function SummaryView({ tabId, configured, status, text, error, usage, sum
           <div className="action-bar">
             <button className="btn btn-secondary btn-sm" onClick={() => navigator.clipboard.writeText(text)}>{t('summary.copy')}</button>
             <button className="btn btn-secondary btn-sm" onClick={() => summarize(tabId)}>{t('summary.regenerate')}</button>
-            {usage && (
-              <span className="token-usage">
-                {t('summary.tokens', { total: usage.input + usage.output })}
-              </span>
-            )}
           </div>
           {usage && (
-            <p className="text-xs text-tertiary token-detail">
+            <div className="token-usage-row">
+              {t('summary.tokens', { total: usage.input + usage.output })}
+              <span className="token-usage-sep">·</span>
               {t('summary.tokenDetail', { input: usage.input, output: usage.output })}
-            </p>
+            </div>
           )}
         </>
       )}
