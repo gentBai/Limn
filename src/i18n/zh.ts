@@ -10,8 +10,7 @@ export const zh = {
 
   // Tab navigation
   'tab.summary': '摘要',
-  'tab.translate': '翻译',
-  'tab.chat': '对话',
+  'tab.ask': '问一问 AI',
 
   // Summary view
   'summary.emptyTitle': '开始使用前需配置模型',
@@ -24,24 +23,20 @@ export const zh = {
   'summary.tokens': '消耗 {total} tokens',
   'summary.tokenDetail': '输入 {input} / 输出 {output}',
 
-  // Translate view
-  'translate.emptyTitle': '划词翻译',
-  'translate.emptyDesc': '在网页上选中任意文字，翻译结果会自动记录到这里。最新的翻译显示在最前面。',
-  'translate.records': '翻译记录',
-  'translate.count': '{count} 条',
-
-  // Chat view
-  'chat.emptyTitle': '网页问答对话',
-  'chat.emptyDesc': '基于当前网页内容的多轮对话追问功能将在 v1.1 版本推出，敬请期待。',
+  // Ask view (merged translate + chat)
+  'ask.emptyTitle': '问一问 AI',
+  'ask.emptyDesc': '在网页上选中任意文字，AI 会给出大意和关键信息解读。也可以在这里直接提问，AI 会基于页面内容回答。',
+  'ask.placeholder': '基于当前页面提问...',
+  'ask.selectionTag': '划词',
 
   // Error handling
   'error.retry': '重试',
   'error.goSettings': '前往设置',
 
   // Selection bubble
-  'bubble.translate': '🌐 翻译',
-  'bubble.translating': '...',
-  'bubble.failed': '翻译失败',
+  'bubble.ask': '🌐 问一问',
+  'bubble.asking': '...',
+  'bubble.failed': '解读失败',
 
   // Options page
   'options.title': '设置',

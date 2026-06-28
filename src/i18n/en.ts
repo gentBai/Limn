@@ -12,8 +12,7 @@ export const en: Messages = {
 
   // Tab navigation
   'tab.summary': 'Summary',
-  'tab.translate': 'Translate',
-  'tab.chat': 'Chat',
+  'tab.ask': 'Ask AI',
 
   // Summary view
   'summary.emptyTitle': 'Configure a model to get started',
@@ -26,24 +25,20 @@ export const en: Messages = {
   'summary.tokens': '{total} tokens used',
   'summary.tokenDetail': 'Input {input} / Output {output}',
 
-  // Translate view
-  'translate.emptyTitle': 'Hover Translation',
-  'translate.emptyDesc': 'Select any text on a web page and translations will be recorded here automatically. The most recent translations appear first.',
-  'translate.records': 'Translation Records',
-  'translate.count': '{count} items',
-
-  // Chat view
-  'chat.emptyTitle': 'Page Q&A Chat',
-  'chat.emptyDesc': 'Multi-turn follow-up chat based on the current page content will be available in v1.1. Stay tuned.',
+  // Ask view (merged translate + chat)
+  'ask.emptyTitle': 'Ask AI',
+  'ask.emptyDesc': 'Select any text on a web page and the AI will give you the gist and key points. You can also ask questions here directly — the AI answers based on the page content.',
+  'ask.placeholder': 'Ask about the current page...',
+  'ask.selectionTag': 'Selection',
 
   // Error handling
   'error.retry': 'Retry',
   'error.goSettings': 'Go to settings',
 
   // Selection bubble
-  'bubble.translate': '🌐 Translate',
-  'bubble.translating': '...',
-  'bubble.failed': 'Translation failed',
+  'bubble.ask': '🌐 Ask',
+  'bubble.asking': '...',
+  'bubble.failed': 'Interpretation failed',
 
   // Options page
   'options.title': 'Settings',

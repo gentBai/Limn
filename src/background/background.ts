@@ -1,10 +1,9 @@
 import { createLLMClient } from '@/llm/client-factory';
 import { buildSummaryPrompt } from '@/prompts/summary';
-import { buildTranslatePrompt } from '@/prompts/translate';
+import { buildChatPrompt, wrapSelectionAsUserMessage } from '@/prompts/chat';
 import { getActiveProviderSettings } from '@/storage';
-import { handleTranslate } from './handlers/translate';
 import { LLMError } from '@/llm/adapters/openai-compat';
-import type { RequestMessage, SummarizeChunk, BackgroundEvent, TranslateStreamChunk, TranslationRecord } from '@/shared/messages';
+import type { RequestMessage, SummarizeChunk, BackgroundEvent, ChatStreamChunk, ConversationMessage } from '@/shared/messages';
 import { ErrorCode } from '@/shared/messages';
 import { initLocale, getLocale } from '@/i18n';
 import { getErrorMessage } from '@/llm/error-messages';
@@ -12,8 +11,7 @@ import {
   getTabState,
   setPageContent,
   updateSummary,
-  addTranslation,
-  updateTranslation,
+  addChatMessage,
   clearTabState,
 } from './tab-state';
 
@@ -42,7 +40,11 @@ async function extractFromTab(tabId: number): Promise<any> {
   return response;
 }
 
-function errChunk(code: ErrorCode, retryable = false): SummarizeChunk {
+function errSummaryChunk(code: ErrorCode, retryable = false): SummarizeChunk {
+  return { kind: 'error', error: { code, message: getErrorMessage(code, getLocale()), retryable } };
+}
+
+function errChatChunk(code: ErrorCode, retryable = false): ChatStreamChunk {
   return { kind: 'error', error: { code, message: getErrorMessage(code, getLocale()), retryable } };
 }
 
@@ -62,44 +64,21 @@ function broadcast(event: BackgroundEvent) {
   });
 }
 
+/** Push the latest chat history to sidepanel for a given tab */
+async function broadcastChat(tabId: number) {
+  const state = await getTabState(tabId);
+  broadcast({ type: 'CHAT_UPDATED', tabId, messages: state.chat });
+}
+
 // Standard request routing (non-streaming)
-chrome.runtime.onMessage.addListener((req: RequestMessage | BackgroundEvent, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((req: RequestMessage | BackgroundEvent, _sender, sendResponse) => {
   // BackgroundEvent is broadcast by background itself; do not handle own messages
   if (req && typeof req === 'object' && 'type' in req) {
     const t = (req as any).type;
-    if (t === 'TAB_CHANGED' || t === 'TRANSLATION_ADDED') return;
+    if (t === 'TAB_CHANGED' || t === 'CHAT_UPDATED') return;
   }
 
   const r = req as RequestMessage;
-  if (r.type === 'TRANSLATE') {
-    handleTranslate(r.text).then(
-      (data) => sendResponse({ type: 'SUCCESS', data }),
-      (e: any) => sendResponse({ type: 'ERROR', error: asError(e) })
-    );
-    return true;
-  }
-  if (r.type === 'TRANSLATE_AND_RECORD') {
-    // content-script cannot know its own tabId; get it from sender.tab.id
-    const tabId = sender.tab?.id ?? r.tabId;
-    (async () => {
-      try {
-        const data = await handleTranslate(r.text);
-        const record = {
-          id: `tr-${Date.now().toString(36)}`,
-          source: r.text,
-          target: data.translated,
-          at: Date.now(),
-        };
-        await addTranslation(tabId, record);
-        // Notify sidepanel of a new translation (if it is showing this tab)
-        broadcast({ type: 'TRANSLATION_ADDED', tabId, record });
-        sendResponse({ type: 'SUCCESS', data });
-      } catch (e: any) {
-        sendResponse({ type: 'ERROR', error: asError(e) });
-      }
-    })();
-    return true;
-  }
   if (r.type === 'GET_PAGE_CONTENT') {
     extractFromTab(r.tabId).then(
       (content) => sendResponse({ type: 'SUCCESS', data: { content } }),
@@ -116,7 +95,7 @@ chrome.runtime.onMessage.addListener((req: RequestMessage | BackgroundEvent, sen
   }
 });
 
-// Streaming summary: long-lived connection
+// Streaming summary: long-lived connection, port name format summarize:<tabId>
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name.startsWith('summarize:')) {
     (async () => {
@@ -125,7 +104,7 @@ chrome.runtime.onConnect.addListener((port) => {
         const settings = await getActiveProviderSettings();
         if (!settings || !settings.apiKey) {
           await updateSummary(tabId, { status: 'error', error: { code: ErrorCode.MISSING_API_KEY, message: getErrorMessage(ErrorCode.MISSING_API_KEY, getLocale()), retryable: false } });
-          port.postMessage(errChunk(ErrorCode.MISSING_API_KEY));
+          port.postMessage(errSummaryChunk(ErrorCode.MISSING_API_KEY));
           return port.disconnect();
         }
         port.postMessage({ kind: 'extracting' });
@@ -146,53 +125,66 @@ chrome.runtime.onConnect.addListener((port) => {
       } catch (e: any) {
         console.error('[AI Reader] summarize error:', e);
         await updateSummary(tabId, { status: 'error', error: { code: ErrorCode.MODEL_ERROR, message: getErrorMessage(ErrorCode.MODEL_ERROR, getLocale()), retryable: false } });
-        port.postMessage(errChunk(ErrorCode.MODEL_ERROR));
+        port.postMessage(errSummaryChunk(ErrorCode.MODEL_ERROR));
       } finally {
         port.disconnect();
       }
     })();
   }
-  // Streaming translate: long-lived connection, port name format translate:<text> (tabId from sender)
-  if (port.name.startsWith('translate:')) {
-    const text = port.name.slice('translate:'.length);
+  // Streaming chat: long-lived connection, port name format chat:<mode>:<payload>
+  // mode = "selection" (payload = selected text) | "question" (payload = user question)
+  // tabId is obtained from port.sender.tab.id (content-script cannot know its own tabId)
+  if (port.name.startsWith('chat:')) {
+    const rest = port.name.slice('chat:'.length);
+    const colonIdx = rest.indexOf(':');
+    const mode = rest.slice(0, colonIdx) as 'selection' | 'question';
+    const payload = rest.slice(colonIdx + 1); // payload may contain colons
     const tabId = port.sender?.tab?.id ?? 0;
     (async () => {
       try {
         const settings = await getActiveProviderSettings();
         if (!settings || !settings.apiKey) {
-          port.postMessage({ kind: 'error', error: { code: ErrorCode.MISSING_API_KEY, message: getErrorMessage(ErrorCode.MISSING_API_KEY, getLocale()), retryable: false } });
+          port.postMessage(errChatChunk(ErrorCode.MISSING_API_KEY));
           return port.disconnect();
         }
-        // 1. Immediately create an empty record and broadcast
-        const record: TranslationRecord = {
-          id: `tr-${Date.now().toString(36)}`,
-          source: text,
-          target: '',
-          at: Date.now(),
-        };
-        await addTranslation(tabId, record);
-        broadcast({ type: 'TRANSLATION_ADDED', tabId, record });
-        port.postMessage({ kind: 'created', record });
 
-        // 2. Stream translate, update record per delta + broadcast + push to bubble
+        const locale = getLocale();
+        // 1. Build the user message and append to the conversation stream
+        const userMessage: ConversationMessage = mode === 'selection'
+          ? wrapSelectionAsUserMessage(payload, locale)
+          : { role: 'user', content: payload, at: Date.now() };
+        await addChatMessage(tabId, userMessage);
+        // Notify: user message added
+        port.postMessage({ kind: 'userAdded', message: userMessage });
+        await broadcastChat(tabId);
+
+        // 2. Load current state (page content + full history)
+        const state = await getTabState(tabId);
+        const content = contentCache.get(tabId) ?? state.pageContent;
         const client = createLLMClient(settings);
-        let target = '';
-        for await (const c of client.stream({ messages: buildTranslatePrompt(text, getLocale()) })) {
+        const messages = buildChatPrompt(content, state.chat, locale);
+
+        // 3. Stream the assistant reply
+        let reply = '';
+        for await (const c of client.stream({ messages })) {
           if (c.delta) {
-            target += c.delta;
-            await updateTranslation(tabId, record.id, { target });
-            broadcast({ type: 'TRANSLATION_UPDATED', tabId, record: { ...record, target } });
+            reply += c.delta;
             port.postMessage({ kind: 'streaming', delta: c.delta });
           }
         }
-        // 3. Done
-        const finalRecord = { ...record, target };
-        await updateTranslation(tabId, record.id, { target });
-        broadcast({ type: 'TRANSLATION_UPDATED', tabId, record: finalRecord });
-        port.postMessage({ kind: 'done', record: finalRecord });
+
+        // 4. Append assistant reply to the stream, broadcast
+        const assistantMessage: ConversationMessage = {
+          role: 'assistant',
+          content: reply,
+          at: Date.now(),
+        };
+        await addChatMessage(tabId, assistantMessage);
+        port.postMessage({ kind: 'done', message: assistantMessage });
+        await broadcastChat(tabId);
       } catch (e: any) {
-        console.error('[AI Reader] translate stream error:', e);
-        port.postMessage({ kind: 'error', error: asError(e) });
+        console.error('[AI Reader] chat stream error:', e);
+        port.postMessage(errChatChunk(ErrorCode.MODEL_ERROR));
       } finally {
         port.disconnect();
       }

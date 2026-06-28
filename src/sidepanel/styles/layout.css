@@ -99,16 +99,7 @@
 .error-box-title { font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--color-error); margin-bottom: var(--space-3); }
 .error-box-actions { display: flex; gap: var(--space-2); }
 
-/* token 用量 */
-.token-usage {
-  margin-left: auto;
-  font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-.token-detail { margin-top: var(--space-2); text-align: right; }
-
-/* 翻译记录列表 */
+/* Translation records list (legacy, kept for backward compat) */
 .translate-header {
   display: flex;
   align-items: center;
@@ -116,36 +107,116 @@
   margin-bottom: var(--space-3);
 }
 .font-medium { font-weight: var(--font-medium); }
-.translate-list {
+
+/* ============ Ask / Chat conversation view ============ */
+.ask-layout {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-}
-.translate-item {
-  padding: var(--space-3);
-  background: var(--color-bg-subtle);
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-}
-.translate-item-source {
-  font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
-  line-height: 1.5;
-  margin-bottom: var(--space-1);
-  padding-bottom: var(--space-1);
-  border-bottom: 1px dashed var(--color-border);
-  cursor: pointer;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
 }
-.translate-item-target {
+.ask-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.ask-messages::-webkit-scrollbar { width: 6px; }
+.ask-messages::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+/* chat message row */
+.chat-msg { display: flex; gap: var(--space-2); align-items: flex-start; }
+.chat-msg-user { flex-direction: row-reverse; }
+.chat-msg-avatar-wrapper { flex-shrink: 0; }
+.chat-msg-avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.chat-msg-avatar.ai { background: var(--color-primary-light); }
+.chat-msg-avatar.user { background: var(--color-bg-muted); }
+.chat-msg-body {
+  max-width: 82%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chat-msg-user .chat-msg-body { align-items: flex-end; }
+.chat-msg-tag {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+}
+.chat-msg-bubble {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  color: var(--color-text);
   line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
-.translate-item-meta {
-  margin-top: var(--space-1);
-  text-align: right;
+.chat-msg-bubble-user {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-bottom-right-radius: var(--space-1);
 }
+.chat-msg-bubble-ai {
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  border-bottom-left-radius: var(--space-1);
+}
+.chat-msg-time {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
+/* input area at the bottom */
+.ask-input-area {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+.ask-input {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  resize: none;
+  max-height: 120px;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.ask-input:focus { border-color: var(--color-primary); }
+.ask-send-btn {
+  width: 34px; height: 34px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ask-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }

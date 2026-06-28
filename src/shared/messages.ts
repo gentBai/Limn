@@ -22,21 +22,24 @@ export interface ErrorResponse {
   retryable: boolean;
 }
 
-/** token 用量 */
+/** token usage */
 export interface TokenUsage {
   input: number;
   output: number;
 }
 
-/** 单条翻译记录 */
-export interface TranslationRecord {
-  id: string;
-  source: string;
-  target: string;
+/** A single message in the conversation stream (single stream per tab).
+ *  Distinct from the base ChatMessage in types.ts (which is for LLM API payloads);
+ *  this one adds UI metadata (fromSelection, at). */
+export interface ConversationMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  /** Whether triggered by text selection (for UI differentiation) */
+  fromSelection?: boolean;
   at: number;
 }
 
-/** 摘要状态 */
+/** Summary state */
 export interface SummaryState {
   status: 'idle' | 'extracting' | 'streaming' | 'done' | 'error';
   text: string;
@@ -44,45 +47,42 @@ export interface SummaryState {
   usage: TokenUsage | null;
 }
 
-/** 按 tabId 隔离的页面状态 */
+/** Per-tab state isolated by tabId */
 export interface TabState {
   tabId: number;
   pageContent: PageContent | null;
   summary: SummaryState;
-  translations: TranslationRecord[];
+  /** Single conversation stream: all selections and follow-ups chained together */
+  chat: ConversationMessage[];
 }
 
 export type RequestMessage =
   | { type: 'EXTRACT_CONTENT'; tabId: number }
   | { type: 'SUMMARIZE'; tabId: number }
-  | { type: 'TRANSLATE'; text: string }
-  | { type: 'TRANSLATE_AND_RECORD'; tabId: number; text: string }
   | { type: 'GET_PAGE_CONTENT'; tabId: number }
   | { type: 'GET_TAB_STATE'; tabId: number };
 
-/** 流式摘要 chunk（含 token 用量） */
+/** Streaming summary chunk (with token usage) */
 export type SummarizeChunk =
   | { kind: 'extracting' }
   | { kind: 'streaming'; delta: string }
   | { kind: 'done'; full: string; usage?: TokenUsage }
   | { kind: 'error'; error: ErrorResponse };
 
-/** 流式翻译 chunk（通过 port 推送给 content-script 气泡 + sidepanel 记录） */
-export type TranslateStreamChunk =
-  | { kind: 'created'; record: TranslationRecord }    // empty record created
-  | { kind: 'streaming'; delta: string }              // translation delta
-  | { kind: 'done'; record: TranslationRecord }       // done (with final translation)
+/** Streaming chat chunk (pushed via port to content-script bubble + sidepanel) */
+export type ChatStreamChunk =
+  | { kind: 'userAdded'; message: ConversationMessage }    // user message added to stream
+  | { kind: 'streaming'; delta: string }                   // assistant reply delta
+  | { kind: 'done'; message: ConversationMessage }         // assistant reply complete
   | { kind: 'error'; error: ErrorResponse };
 
-/** background 主动推给 sidepanel 的事件 */
+/** Events broadcast from background to sidepanel */
 export type BackgroundEvent =
   | { type: 'TAB_CHANGED'; tabId: number }
-  | { type: 'TRANSLATION_ADDED'; tabId: number; record: TranslationRecord }
-  | { type: 'TRANSLATION_UPDATED'; tabId: number; record: TranslationRecord };
+  | { type: 'CHAT_UPDATED'; tabId: number; messages: ConversationMessage[] };
 
 export type ResponseMessage<T = unknown> =
   | { type: 'SUCCESS'; data: T }
   | { type: 'ERROR'; error: ErrorResponse };
 
-export type TranslateResult = { translated: string };
 export type ExtractResult = { content: PageContent };

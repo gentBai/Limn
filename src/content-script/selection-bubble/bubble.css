@@ -1,11 +1,11 @@
-/* host 容器：不占文档流空间，作为 absolute 定位基准 */
+/* host container: does not occupy document flow, acts as absolute positioning anchor */
 .ar-host {
   position: absolute;
   top: 0;
   left: 0;
   width: 0;
   height: 0;
-  pointer-events: none; /* 容器本身不拦截事件，让气泡自己响应 */
+  pointer-events: none; /* container does not intercept events, lets bubble respond */
   z-index: 2147483647;
 }
 
@@ -18,14 +18,27 @@
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(28, 25, 23, 0.2);
   cursor: pointer;
-  max-width: 320px;
+  max-width: 360px;
   white-space: normal;
-  pointer-events: auto; /* 气泡本身需要响应点击 */
+  pointer-events: auto; /* bubble itself needs to respond to clicks */
 }
+
 .ar-bubble.ar-expanded {
   background: #fff;
   color: #1c1917;
   border: 1px solid #e7e5e4;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
+  /* expanded bubble shows the full AI reply; cap height and allow scrolling */
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  white-space: pre-wrap;
+}
+
+/* thin scrollbar inside the expanded bubble */
+.ar-bubble.ar-expanded::-webkit-scrollbar { width: 6px; }
+.ar-bubble.ar-expanded::-webkit-scrollbar-thumb {
+  background: #d6d3d1;
+  border-radius: 3px;
 }

@@ -1,25 +1,25 @@
 import { setupExtractorListener } from './extractor-runner';
-import { TranslateBubble } from './selection-bubble/Bubble';
+import { AskBubble } from './selection-bubble/Bubble';
 import { initLocale, t } from '@/i18n';
 
 setupExtractorListener();
 
 // Initialize locale (read user override or browser language), then set up the bubble
 initLocale().then(() => {
-  // Hover translate bubble: initiates streaming translation via port, fills token-by-token
-  new TranslateBubble(
+  // Ask-AI bubble: initiates streaming interpretation via port, fills token-by-token
+  new AskBubble(
     async (text, onDelta) => {
-      const port = chrome.runtime.connect({ name: `translate:${text}` });
+      const port = chrome.runtime.connect({ name: `chat:selection:${text}` });
       return new Promise<string>((resolve, reject) => {
         let full = '';
         port.onMessage.addListener((chunk) => {
-          if (chunk.kind === 'created') {
-            // empty record created, bubble can show loading state
+          if (chunk.kind === 'userAdded') {
+            // user message added to the conversation stream
           } else if (chunk.kind === 'streaming') {
             full += chunk.delta;
             onDelta?.(full);
           } else if (chunk.kind === 'done') {
-            resolve(chunk.record.target || full);
+            resolve(chunk.message?.content || full);
             port.disconnect();
           } else if (chunk.kind === 'error') {
             reject(new Error(chunk.error?.message ?? t('bubble.failed')));

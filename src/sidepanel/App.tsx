@@ -1,24 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Header } from './components/Header';
 import { TabNav, type Tab } from './components/TabNav';
 import { SummaryView } from './views/SummaryView';
-import { TranslateView } from './views/TranslateView';
-import { ChatView } from './views/ChatView';
+import { AskView } from './views/AskView';
 import { loadSettings } from '@/storage';
 import { useStreamingSummary } from './hooks/useStreamingSummary';
+import { useChat } from './hooks/useChat';
 import { t } from '@/i18n';
-import type { BackgroundEvent, TranslationRecord } from '@/shared/messages';
+import type { BackgroundEvent, ConversationMessage } from '@/shared/messages';
 
 export function App() {
   const [tab, setTab] = useState<Tab>('summary');
   const [tabId, setTabId] = useState(0);
   const [configured, setConfigured] = useState(false);
   const [providerLabel, setProviderLabel] = useState(t('common.unconfigured'));
-  // Translation records shown for the current tabId (loaded from background)
-  const [translations, setTranslations] = useState<TranslationRecord[]>([]);
+  // Conversation messages (single stream per tab)
+  const [messages, setMessages] = useState<ConversationMessage[]>([]);
 
   // Summary state lifted to App: not lost on tab switch, restored from background on page switch
   const summary = useStreamingSummary();
+  const chat = useChat();
+  // remember the last question for retry
+  const [lastQuestion, setLastQuestion] = useState('');
 
   // Load config
   useEffect(() => {
@@ -29,23 +32,22 @@ export function App() {
     });
   }, []);
 
-  /** 加载指定 tab 的状态（摘要 + 翻译记录），切 tab 时调用 */
-  const loadTabState = (id: number) => {
+  /** Load the state for a given tab (summary + chat), called on tab switch */
+  const loadTabState = useCallback((id: number) => {
     if (!id) return;
     chrome.runtime.sendMessage({ type: 'GET_TAB_STATE', tabId: id }).then((res) => {
       if (res?.type !== 'SUCCESS') return;
       const ts = res.data;
-      // restore summary state
       summary.restore({
         status: ts.summary.status,
         text: ts.summary.text,
         error: ts.summary.error,
         usage: ts.summary.usage,
       });
-      // restore translation records
-      setTranslations(ts.translations ?? []);
+      setMessages(ts.chat ?? []);
     });
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Init: get current tab + load state
   useEffect(() => {
@@ -54,27 +56,44 @@ export function App() {
       setTabId(id);
       loadTabState(id);
     });
-  }, []);
+  }, [loadTabState]);
 
-  // Listen for tab switch (background broadcast) + translation add/update
+  // Listen for tab switch (background broadcast) + chat updates
   useEffect(() => {
     const listener = (event: BackgroundEvent) => {
       if (event.type === 'TAB_CHANGED' && event.tabId !== tabId) {
         setTabId(event.tabId);
         loadTabState(event.tabId);
-      } else if (event.type === 'TRANSLATION_ADDED' && event.tabId === tabId) {
-        // new translation on current tab, prepend to list
-        setTranslations((prev) => [event.record, ...prev]);
-      } else if (event.type === 'TRANSLATION_UPDATED' && event.tabId === tabId) {
-        // translation streaming update, replace the matching record target
-        setTranslations((prev) =>
-          prev.map((t) => (t.id === event.record.id ? event.record : t))
-        );
+      } else if (event.type === 'CHAT_UPDATED' && event.tabId === tabId) {
+        // Real-time refresh from background (e.g. a selection interpretation finished)
+        setMessages(event.messages);
       }
     };
     chrome.runtime.onMessage.addListener(listener);
     return () => chrome.runtime.onMessage.removeListener(listener);
-  }, [tabId]);
+  }, [tabId, loadTabState]);
+
+  /** Send a follow-up question from the sidebar */
+  const handleAsk = useCallback((question: string) => {
+    setLastQuestion(question);
+    chat.send(
+      tabId,
+      'question',
+      question,
+      // onUserAdded: optimistic local append
+      (userMsg) => setMessages((prev) => [...prev, userMsg]),
+      // onStreamingDelta: streaming handled by chat.status/streamingReply in render
+      () => {},
+      // onDone: append the assistant reply (the CHAT_UPDATED broadcast will also fire)
+      (assistantMsg) => setMessages((prev) => [...prev, assistantMsg]),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabId, chat]);
+
+  const handleRetry = useCallback(() => {
+    if (lastQuestion) handleAsk(lastQuestion);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastQuestion, handleAsk]);
 
   return (
     <>
@@ -92,8 +111,18 @@ export function App() {
             summarize={summary.summarize}
           />
         )}
-        {tab === 'translate' && <TranslateView translations={translations} />}
-        {tab === 'chat' && <ChatView />}
+        {tab === 'ask' && (
+          <AskView
+            tabId={tabId}
+            configured={configured}
+            messages={messages}
+            streamingStatus={chat.status}
+            streamingReply={chat.streamingReply}
+            streamingError={chat.error}
+            onAsk={handleAsk}
+            onRetry={handleRetry}
+          />
+        )}
       </main>
     </>
   );

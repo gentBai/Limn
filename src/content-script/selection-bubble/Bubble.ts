@@ -2,16 +2,17 @@ import bubbleCss from './bubble.css?raw';
 import { t } from '@/i18n';
 
 /**
- * 划词翻译气泡。使用 Shadow DOM 隔离样式。
- * 监听 mouseup，在选区附近浮现"翻译"按钮；点击后调用翻译并展示结果。
+ * Ask-AI bubble. Uses Shadow DOM for style isolation.
+ * Listens to mouseup, shows an "ask" button near the selection; on click,
+ * asks the AI to interpret the selected text and shows the full reply.
  */
-export class TranslateBubble {
+export class AskBubble {
   private host: HTMLDivElement;
   private shadow: ShadowRoot;
   private bubble: HTMLDivElement;
 
   constructor(
-    private translate: (text: string, onDelta?: (partial: string) => void) => Promise<string>
+    private ask: (text: string, onDelta?: (partial: string) => void) => Promise<string>
   ) {
     this.host = document.createElement('div');
     this.host.id = 'ai-reader-bubble-host';
@@ -23,7 +24,7 @@ export class TranslateBubble {
     document.addEventListener('mouseup', this.onMouseUp);
   }
 
-  /** 判断事件是否发生在气泡内部（点击气泡本身时不应隐藏/重置） */
+  /** Detect whether the event occurred inside the bubble (clicking the bubble should not reset selection) */
   private isOnBubble(e: MouseEvent): boolean {
     // composedPath penetrates Shadow DOM boundary
     return e.composedPath().includes(this.host);
@@ -45,16 +46,16 @@ export class TranslateBubble {
     this.bubble.classList.remove('ar-expanded');
     this.bubble.style.top = `${rect.top + window.scrollY - 36}px`;
     this.bubble.style.left = `${rect.left + window.scrollX + rect.width / 2 - 30}px`;
-    this.bubble.textContent = t('bubble.translate');
+    this.bubble.textContent = t('bubble.ask');
     this.bubble.onclick = async () => {
-      this.bubble.textContent = t('bubble.translating');
+      this.bubble.textContent = t('bubble.asking');
       this.bubble.classList.add('ar-expanded');
       try {
-        const translated = await this.translate(text, (partial) => {
-          // Stream-fill the bubble token by token
-          this.bubble.textContent = partial.slice(0, 200);
+        const answer = await this.ask(text, (partial) => {
+          // Stream-fill the bubble with the full reply (no truncation)
+          this.bubble.textContent = partial;
         });
-        this.bubble.textContent = translated.slice(0, 200);
+        this.bubble.textContent = answer;
         this.bubble.classList.add('ar-expanded');
       } catch {
         this.bubble.textContent = t('bubble.failed');
