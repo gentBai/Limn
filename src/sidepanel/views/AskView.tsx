@@ -4,6 +4,15 @@ import { t } from '@/i18n';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBox } from '../components/ErrorBox';
 import type { ErrorResponse } from '@/shared/messages';
+import logoUrl from '../../../public/icons/icon.svg?url';
+
+/** AI avatar: the Limn logo for AI messages, emoji for the user */
+function Avatar({ role }: { role: 'user' | 'assistant' | 'system' }) {
+  if (role === 'user') {
+    return <div className="chat-msg-avatar user">🧑</div>;
+  }
+  return <img className="chat-msg-avatar ai" src={logoUrl} alt="Limn" />;
+}
 
 interface AskViewProps {
   tabId: number;
@@ -76,9 +85,7 @@ export function AskView({
         {messages.map((m, i) => (
           <div key={i} className={`chat-msg chat-msg-${m.role === 'user' ? 'user' : 'ai'}`}>
             <div className="chat-msg-avatar-wrapper">
-              <div className={`chat-msg-avatar ${m.role === 'user' ? 'user' : 'ai'}`}>
-                {m.role === 'user' ? '🧑' : '🤖'}
-              </div>
+              <Avatar role={m.role} />
             </div>
             <div className="chat-msg-body">
               {m.role === 'user' && m.fromSelection && (
@@ -96,7 +103,7 @@ export function AskView({
         {streamingStatus === 'streaming' && (
           <div className="chat-msg chat-msg-ai">
             <div className="chat-msg-avatar-wrapper">
-              <div className="chat-msg-avatar ai">🤖</div>
+              <Avatar role="assistant" />
             </div>
             <div className="chat-msg-body">
               <div className="chat-msg-bubble chat-msg-bubble-ai">
