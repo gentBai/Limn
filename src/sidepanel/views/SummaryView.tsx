@@ -28,7 +28,7 @@ export function SummaryView({ tabId, configured, status, text, error, usage, sum
 
   if (status === 'idle') {
     return (
-      <div className="sp-content">
+      <div className="sp-content sp-content-centered">
         <button className="btn btn-primary btn-lg btn-block" onClick={() => summarize(tabId)}>
           {t('summary.generate')}
         </button>

@@ -28,6 +28,7 @@ export const zh = {
   'ask.emptyDesc': '在网页上选中任意文字，AI 会给出大意和关键信息解读。也可以在这里直接提问，AI 会基于页面内容回答。',
   'ask.placeholder': '基于当前页面提问...',
   'ask.selectionTag': '划词',
+  'ask.thinking': '思考中',
 
   // Error handling
   'error.retry': '重试',

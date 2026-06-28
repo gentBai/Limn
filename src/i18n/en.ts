@@ -30,6 +30,7 @@ export const en: Messages = {
   'ask.emptyDesc': 'Select any text on a web page and the AI will give you the gist and key points. You can also ask questions here directly — the AI answers based on the page content.',
   'ask.placeholder': 'Ask about the current page...',
   'ask.selectionTag': 'Selection',
+  'ask.thinking': 'Thinking',
 
   // Error handling
   'error.retry': 'Retry',

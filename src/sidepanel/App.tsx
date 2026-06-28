@@ -67,6 +67,8 @@ export function App() {
       } else if (event.type === 'CHAT_UPDATED' && event.tabId === tabId) {
         // Real-time refresh from background (e.g. a selection interpretation finished)
         setMessages(event.messages);
+        // Auto-switch to the Ask tab so the user sees the conversation (e.g. after a selection)
+        setTab('ask');
       }
     };
     chrome.runtime.onMessage.addListener(listener);

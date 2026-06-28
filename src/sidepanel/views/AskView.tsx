@@ -71,6 +71,12 @@ export function AskView({
     );
   }
 
+  // When the last message is from the user and we're not streaming a sidebar reply,
+  // the assistant is thinking (e.g. after a selection). Show a pending bubble so the
+  // user sees the AI received the message.
+  const lastIsUser = messages.length > 0 && messages[messages.length - 1].role === 'user';
+  const showPending = lastIsUser && streamingStatus !== 'streaming';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const q = input.trim();
@@ -99,7 +105,7 @@ export function AskView({
           </div>
         ))}
 
-        {/* streaming reply bubble */}
+        {/* streaming reply bubble (sidebar follow-up) */}
         {streamingStatus === 'streaming' && (
           <div className="chat-msg chat-msg-ai">
             <div className="chat-msg-avatar-wrapper">
@@ -108,6 +114,20 @@ export function AskView({
             <div className="chat-msg-body">
               <div className="chat-msg-bubble chat-msg-bubble-ai">
                 {streamingReply || '...'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* pending bubble: last message is from user, AI is thinking (e.g. after a selection) */}
+        {showPending && (
+          <div className="chat-msg chat-msg-ai">
+            <div className="chat-msg-avatar-wrapper">
+              <Avatar role="assistant" />
+            </div>
+            <div className="chat-msg-body">
+              <div className="chat-msg-bubble chat-msg-bubble-ai chat-msg-pending">
+                {t('ask.thinking')}
               </div>
             </div>
           </div>

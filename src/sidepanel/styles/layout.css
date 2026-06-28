@@ -53,6 +53,11 @@
   overflow-y: auto;
   padding: var(--space-4);
 }
+.sp-content-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .sp-content::-webkit-scrollbar { width: 6px; }
 .sp-content::-webkit-scrollbar-thumb {
   background: var(--color-border-strong);
@@ -184,6 +189,26 @@
   background: var(--color-bg-subtle);
   color: var(--color-text);
   border-bottom-left-radius: var(--space-1);
+}
+.chat-msg-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-tertiary);
+}
+.chat-msg-pending::after {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 6px;
+  background-image: radial-gradient(circle, var(--color-text-tertiary) 1.5px, transparent 1.5px);
+  background-size: 6px 6px;
+  background-repeat: repeat-x;
+  animation: chat-pending-bounce 1.4s infinite ease-in-out both;
+}
+@keyframes chat-pending-bounce {
+  0%, 80%, 100% { opacity: 0.3; }
+  40% { opacity: 1; }
 }
 .chat-msg-time {
   font-size: 10px;
