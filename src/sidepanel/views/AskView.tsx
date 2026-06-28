@@ -99,7 +99,7 @@ export function AskView({
               <div className="chat-msg-avatar ai">🤖</div>
             </div>
             <div className="chat-msg-body">
-              <div className="chat-msg-bubble chat-msg-bubble-ai streaming-text">
+              <div className="chat-msg-bubble chat-msg-bubble-ai">
                 {streamingReply || '...'}
               </div>
             </div>
