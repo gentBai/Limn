@@ -3,8 +3,11 @@ import { buildSummaryPrompt } from '@/prompts/summary';
 import { buildTranslatePrompt } from '@/prompts/translate';
 import { getActiveProviderSettings } from '@/storage';
 import { handleTranslate } from './handlers/translate';
+import { LLMError } from '@/llm/adapters/openai-compat';
 import type { RequestMessage, SummarizeChunk, BackgroundEvent, TranslateStreamChunk, TranslationRecord } from '@/shared/messages';
 import { ErrorCode } from '@/shared/messages';
+import { initLocale, getLocale } from '@/i18n';
+import { getErrorMessage } from '@/llm/error-messages';
 import {
   getTabState,
   setPageContent,
@@ -14,7 +17,10 @@ import {
   clearTabState,
 } from './tab-state';
 
-// 缓存：tabId -> PageContent（内存级，避免重复抽取的等待）
+// Initialize locale on service worker startup (browser language or user override)
+initLocale();
+
+// Cache: tabId -> PageContent (in-memory, avoids re-extraction wait)
 const contentCache = new Map<number, any>();
 
 async function extractFromTab(tabId: number): Promise<any> {
@@ -25,37 +31,40 @@ async function extractFromTab(tabId: number): Promise<any> {
     response = await chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_CONTENT' });
   } catch (e: any) {
     console.error('[AI Reader] sendMessage to tab failed:', e?.message);
-    throw new Error('无法连接到当前页面（页面可能不支持注入，或尚未加载完成）');
+    throw new LLMError(ErrorCode.EXTRACTION_FAILED, getErrorMessage(ErrorCode.EXTRACTION_FAILED, getLocale()), false);
   }
   if (!response?.text) {
     console.error('[AI Reader] extract returned empty, response:', response);
-    throw new Error('未能从当前页面提取到有效正文');
+    throw new LLMError(ErrorCode.EXTRACTION_FAILED, getErrorMessage(ErrorCode.EXTRACTION_FAILED, getLocale()), false);
   }
   contentCache.set(tabId, response);
-  // 同步持久化到 session，供 sidepanel 切回时取用
   await setPageContent(tabId, response);
   return response;
 }
 
-function errChunk(code: ErrorCode, message: string, retryable = false): SummarizeChunk {
-  return { kind: 'error', error: { code, message, retryable } };
+function errChunk(code: ErrorCode, retryable = false): SummarizeChunk {
+  return { kind: 'error', error: { code, message: getErrorMessage(code, getLocale()), retryable } };
 }
 
 function asError(e: any) {
+  // LLMError carries a code; override message with localized text
+  if (e?.code && typeof e.code === 'string') {
+    return { code: e.code, message: getErrorMessage(e.code as ErrorCode, getLocale()), retryable: e.retryable ?? false };
+  }
   if (typeof e?.toResponse === 'function') return e.toResponse();
   return { code: ErrorCode.MODEL_ERROR, message: e?.message ?? String(e), retryable: false };
 }
 
-/** 广播事件给所有 sidepanel（sidepanel 监听 BackgroundEvent） */
+/** Broadcast event to all sidepanels (sidepanel listens for BackgroundEvent) */
 function broadcast(event: BackgroundEvent) {
   chrome.runtime.sendMessage(event).catch(() => {
-    // 没有接收方时会抛错，忽略即可（正常情况，不是所有时刻都有 sidepanel 开着）
+    // Throws when no receiver; ignore (normal, sidepanel may not be open)
   });
 }
 
-// 普通请求路由（非流式）
+// Standard request routing (non-streaming)
 chrome.runtime.onMessage.addListener((req: RequestMessage | BackgroundEvent, sender, sendResponse) => {
-  // BackgroundEvent 是 background 自己广播的，background 不应处理自己发的消息
+  // BackgroundEvent is broadcast by background itself; do not handle own messages
   if (req && typeof req === 'object' && 'type' in req) {
     const t = (req as any).type;
     if (t === 'TAB_CHANGED' || t === 'TRANSLATION_ADDED') return;
@@ -70,7 +79,7 @@ chrome.runtime.onMessage.addListener((req: RequestMessage | BackgroundEvent, sen
     return true;
   }
   if (r.type === 'TRANSLATE_AND_RECORD') {
-    // content-script 无法直接知道自己的 tabId，从 sender.tab.id 获取
+    // content-script cannot know its own tabId; get it from sender.tab.id
     const tabId = sender.tab?.id ?? r.tabId;
     (async () => {
       try {
@@ -82,7 +91,7 @@ chrome.runtime.onMessage.addListener((req: RequestMessage | BackgroundEvent, sen
           at: Date.now(),
         };
         await addTranslation(tabId, record);
-        // 通知 sidepanel 有新翻译（如果它正显示该 tab）
+        // Notify sidepanel of a new translation (if it is showing this tab)
         broadcast({ type: 'TRANSLATION_ADDED', tabId, record });
         sendResponse({ type: 'SUCCESS', data });
       } catch (e: any) {
@@ -101,13 +110,13 @@ chrome.runtime.onMessage.addListener((req: RequestMessage | BackgroundEvent, sen
   if (r.type === 'GET_TAB_STATE') {
     getTabState(r.tabId).then(
       (state) => sendResponse({ type: 'SUCCESS', data: state }),
-      () => sendResponse({ type: 'ERROR', error: asError(new Error('读取状态失败')) })
+      () => sendResponse({ type: 'ERROR', error: asError({ code: ErrorCode.MODEL_ERROR, message: getErrorMessage(ErrorCode.MODEL_ERROR, getLocale()), retryable: false }) })
     );
     return true;
   }
 });
 
-// 流式摘要：长连接
+// Streaming summary: long-lived connection
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name.startsWith('summarize:')) {
     (async () => {
@@ -115,8 +124,8 @@ chrome.runtime.onConnect.addListener((port) => {
       try {
         const settings = await getActiveProviderSettings();
         if (!settings || !settings.apiKey) {
-          await updateSummary(tabId, { status: 'error', error: { code: ErrorCode.MISSING_API_KEY, message: '尚未配置 API Key', retryable: false } });
-          port.postMessage(errChunk(ErrorCode.MISSING_API_KEY, '尚未配置 API Key'));
+          await updateSummary(tabId, { status: 'error', error: { code: ErrorCode.MISSING_API_KEY, message: getErrorMessage(ErrorCode.MISSING_API_KEY, getLocale()), retryable: false } });
+          port.postMessage(errChunk(ErrorCode.MISSING_API_KEY));
           return port.disconnect();
         }
         port.postMessage({ kind: 'extracting' });
@@ -125,7 +134,7 @@ chrome.runtime.onConnect.addListener((port) => {
         const client = createLLMClient(settings);
         let full = '';
         let usage: { input: number; output: number } | undefined;
-        for await (const c of client.stream({ messages: buildSummaryPrompt(content) })) {
+        for await (const c of client.stream({ messages: buildSummaryPrompt(content, getLocale()) })) {
           if (c.delta) {
             full += c.delta;
             port.postMessage({ kind: 'streaming', delta: c.delta });
@@ -136,14 +145,14 @@ chrome.runtime.onConnect.addListener((port) => {
         port.postMessage({ kind: 'done', full, usage });
       } catch (e: any) {
         console.error('[AI Reader] summarize error:', e);
-        await updateSummary(tabId, { status: 'error', error: { code: ErrorCode.MODEL_ERROR, message: e?.message ?? '生成失败', retryable: false } });
-        port.postMessage(errChunk(ErrorCode.MODEL_ERROR, e?.message ?? '生成失败'));
+        await updateSummary(tabId, { status: 'error', error: { code: ErrorCode.MODEL_ERROR, message: getErrorMessage(ErrorCode.MODEL_ERROR, getLocale()), retryable: false } });
+        port.postMessage(errChunk(ErrorCode.MODEL_ERROR));
       } finally {
         port.disconnect();
       }
     })();
   }
-  // 流式翻译：长连接，port 名格式 translate:<text>（tabId 从 sender 获取）
+  // Streaming translate: long-lived connection, port name format translate:<text> (tabId from sender)
   if (port.name.startsWith('translate:')) {
     const text = port.name.slice('translate:'.length);
     const tabId = port.sender?.tab?.id ?? 0;
@@ -151,10 +160,10 @@ chrome.runtime.onConnect.addListener((port) => {
       try {
         const settings = await getActiveProviderSettings();
         if (!settings || !settings.apiKey) {
-          port.postMessage({ kind: 'error', error: { code: ErrorCode.MISSING_API_KEY, message: '尚未配置 API Key', retryable: false } });
+          port.postMessage({ kind: 'error', error: { code: ErrorCode.MISSING_API_KEY, message: getErrorMessage(ErrorCode.MISSING_API_KEY, getLocale()), retryable: false } });
           return port.disconnect();
         }
-        // 1. 立即建空记录并广播
+        // 1. Immediately create an empty record and broadcast
         const record: TranslationRecord = {
           id: `tr-${Date.now().toString(36)}`,
           source: text,
@@ -165,10 +174,10 @@ chrome.runtime.onConnect.addListener((port) => {
         broadcast({ type: 'TRANSLATION_ADDED', tabId, record });
         port.postMessage({ kind: 'created', record });
 
-        // 2. 流式翻译，逐 delta 更新记录 + 广播 + 推给气泡
+        // 2. Stream translate, update record per delta + broadcast + push to bubble
         const client = createLLMClient(settings);
         let target = '';
-        for await (const c of client.stream({ messages: buildTranslatePrompt(text) })) {
+        for await (const c of client.stream({ messages: buildTranslatePrompt(text, getLocale()) })) {
           if (c.delta) {
             target += c.delta;
             await updateTranslation(tabId, record.id, { target });
@@ -176,7 +185,7 @@ chrome.runtime.onConnect.addListener((port) => {
             port.postMessage({ kind: 'streaming', delta: c.delta });
           }
         }
-        // 3. 完成
+        // 3. Done
         const finalRecord = { ...record, target };
         await updateTranslation(tabId, record.id, { target });
         broadcast({ type: 'TRANSLATION_UPDATED', tabId, record: finalRecord });
@@ -191,18 +200,18 @@ chrome.runtime.onConnect.addListener((port) => {
   }
 });
 
-// 监听标签页激活（切换）——通知 sidepanel 刷新
+// Listen for tab activation (switch) — notify sidepanel to refresh
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   broadcast({ type: 'TAB_CHANGED', tabId: activeInfo.tabId });
 });
 
-// 监听标签页关闭——清理对应的 TabState
+// Listen for tab close — clean up its TabState
 chrome.tabs.onRemoved.addListener((tabId) => {
   contentCache.delete(tabId);
   clearTabState(tabId);
 });
 
-// 点击图标打开 sidePanel
+// Open sidePanel on icon click
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 });

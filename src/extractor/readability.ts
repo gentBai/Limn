@@ -6,12 +6,12 @@ export interface ReadableResult {
 }
 
 export function extractReadable(document: Document): ReadableResult {
-  // Readability 会修改传入的 document，故克隆
+  // Readability mutates the passed document, so clone it
   const docClone = document.cloneNode(true) as Document;
   const article = new Readability(docClone).parse();
   const text = article?.textContent?.trim() ?? '';
-  // Readability 对短文/无 <title> 的页面可能返回空 title，
-  // 依次尝试 document.title、首个 h1、textContent 首行兜底
+  // Readability may return an empty title for short pages or pages without <title>,
+  // fall back to document.title, first h1, then first line of textContent
   let title = article?.title?.trim() || document.title?.trim() || '';
   if (!title) {
     const h1 = document.querySelector('h1');

@@ -1,4 +1,5 @@
 import type { ErrorCode } from '@/shared/messages';
+import { t } from '@/i18n';
 
 interface ErrorBoxProps {
   code: ErrorCode;
@@ -18,9 +19,9 @@ export function ErrorBox({ code, message, onRetry, onAction, actionLabel }: Erro
       </div>
       <div className="error-box-title">{message}</div>
       <div className="error-box-actions">
-        {canRetry && onRetry && <button className="btn btn-primary btn-sm" onClick={onRetry}>重试</button>}
+        {canRetry && onRetry && <button className="btn btn-primary btn-sm" onClick={onRetry}>{t('error.retry')}</button>}
         {showSettings && onAction && (
-          <button className="btn btn-primary btn-sm" onClick={onAction}>{actionLabel ?? '前往设置'}</button>
+          <button className="btn btn-primary btn-sm" onClick={onAction}>{actionLabel ?? t('error.goSettings')}</button>
         )}
       </div>
     </div>

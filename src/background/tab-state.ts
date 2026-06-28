@@ -52,7 +52,7 @@ export async function updateSummary(tabId: number, patch: Partial<SummaryState>)
 export async function addTranslation(tabId: number, record: TranslationRecord): Promise<void> {
   const all = await readAll();
   const state = all[tabId] ?? emptyTabState(tabId);
-  state.translations.unshift(record); // 最新的在最前
+  state.translations.unshift(record); // newest first
   all[tabId] = state;
   await writeAll(all);
 }

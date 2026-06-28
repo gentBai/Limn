@@ -1,12 +1,19 @@
 import type { ChatMessage } from '@/shared/types';
+import type { Locale } from '@/i18n';
 
-export function buildTranslatePrompt(text: string): ChatMessage[] {
+/**
+ * Build translation prompt.
+ * Source language is auto-detected by the model; target language follows UI locale.
+ */
+export function buildTranslatePrompt(text: string, locale: Locale): ChatMessage[] {
+  const targetLang = locale === 'en' ? 'English' : 'Simplified Chinese';
   return [
     {
       role: 'system',
       content:
-        '你是专业翻译。将用户提供的文本翻译成简体中文。要求：' +
-        '保留原文的代码块、列表、专有名词格式；术语准确；只输出译文，不加解释。',
+        `You are a professional translator. Translate the user-provided text into ${targetLang}. ` +
+        'Requirements: preserve code blocks, lists, and proper noun formatting; use accurate terminology; ' +
+        'output only the translation without explanation.',
     },
     { role: 'user', content: text },
   ];

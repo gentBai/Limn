@@ -3,8 +3,9 @@ import { loadSettings, saveSettings, DEFAULT_SETTINGS } from '@/storage';
 import { BUILTIN_PROVIDER_TEMPLATES, PROTOCOL_OPTIONS } from '@/llm/providers';
 import type { Settings, ProviderSettings } from '@/storage/schema';
 import type { LLMProtocol } from '@/llm/types';
+import { t, initLocale, setLocale } from '@/i18n';
 
-/** 生成简单唯一 id（自定义 provider 用） */
+/** Generate a simple unique id (for custom providers) */
 function genId(): string {
   return `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
@@ -12,121 +13,102 @@ function genId(): string {
 export function App() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
-  const [selectedId, setSelectedId] = useState<string>('');
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    loadSettings().then((s) => {
-      setSettings(s);
-      setSelectedId(s.activeProviderId);
-      setLoaded(true);
+    initLocale().then(() => {
+      loadSettings().then((s) => {
+        const providers = { ...s.providers };
+        for (const p of BUILTIN_PROVIDER_TEMPLATES) {
+          if (!providers[p.id]) {
+            providers[p.id] = {
+              id: p.id,
+              label: t(p.labelKey),
+              protocol: p.protocol,
+              baseURL: p.baseURL,
+              apiKey: '',
+              model: p.defaultModel,
+              isCustom: false,
+            };
+          }
+        }
+        setSettings({ ...s, providers });
+        setLoaded(true);
+      });
     });
   }, []);
 
-  if (!loaded) return <div style={{ padding: 24 }}>加载中...</div>;
+  if (!loaded) return <div style={{ padding: 24 }}>{t('common.loading')}</div>;
 
-  const selected = settings.providers[selectedId];
+  const activeProvider = settings.providers[settings.activeProviderId];
+  // Resolve display label: i18n key for built-in templates, stored label for custom
+  const activeTemplate = BUILTIN_PROVIDER_TEMPLATES.find((x) => x.id === settings.activeProviderId);
 
-  /** 新建自定义 provider */
-  const addCustom = () => {
-    const id = genId();
-    const newP: ProviderSettings = {
-      id,
-      label: '自定义',
-      protocol: 'openai-compat',
-      baseURL: '',
-      model: '',
-      apiKey: '',
-      isCustom: true,
-    };
-    setSettings((s) => ({ ...s, providers: { ...s.providers, [id]: newP } }));
-    setSelectedId(id);
-  };
-
-  /** 从模板一键添加（填好协议+地址+默认模型，用户只需填 Key） */
-  const addFromTemplate = (tplId: string) => {
-    const tpl = BUILTIN_PROVIDER_TEMPLATES.find((t) => t.id === tplId);
-    if (!tpl) return;
-    const id = genId();
-    const newP: ProviderSettings = {
-      id,
-      label: tpl.label,
-      protocol: tpl.protocol,
-      baseURL: tpl.baseURL,
-      model: tpl.defaultModel,
-      apiKey: '',
-      isCustom: false,
-    };
-    setSettings((s) => ({ ...s, providers: { ...s.providers, [id]: newP } }));
-    setSelectedId(id);
-  };
-
-  /** 删除 provider（不能删最后一个） */
-  const removeProvider = (id: string) => {
-    if (Object.keys(settings.providers).length <= 1) return;
-    setSettings((s) => {
-      const providers = { ...s.providers };
-      delete providers[id];
-      const activeProviderId = s.activeProviderId === id
-        ? Object.keys(providers)[0]
-        : s.activeProviderId;
-      return { ...s, providers, activeProviderId };
-    });
-    if (selectedId === id) setSelectedId(settings.activeProviderId);
-  };
-
-  /** 更新选中 provider 的字段 */
-  const updateField = <K extends keyof ProviderSettings>(key: K, value: ProviderSettings[K]) => {
+  const updateApiKey = (key: string) => {
     setSettings((s) => ({
       ...s,
       providers: {
         ...s.providers,
-        [selectedId]: { ...s.providers[selectedId], [key]: value },
+        [s.activeProviderId]: { ...s.providers[s.activeProviderId], apiKey: key },
       },
     }));
   };
 
-  /** 设为当前启用的 provider */
-  const setActive = (id: string) => setSettings((s) => ({ ...s, activeProviderId: id }));
+  const activate = (id: string) => setSettings((s) => ({ ...s, activeProviderId: id }));
+
+  const changeLang = (lang: 'auto' | 'zh' | 'en') => {
+    setSettings((s) => ({ ...s, uiLanguage: lang }));
+    // Apply immediately for the current session
+    if (lang === 'auto') {
+      const browser = (navigator.language || 'zh').toLowerCase();
+      setLocale(browser.startsWith('zh') ? 'zh' : 'en');
+    } else {
+      setLocale(lang);
+    }
+  };
 
   const handleSave = async () => {
     await saveSettings(settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    // Reload to reflect any language change in the layout
+    setTimeout(() => location.reload(), 300);
   };
 
   const providerList = Object.values(settings.providers);
-  const usedTemplateIds = new Set(providerList.filter((p) => !p.isCustom).map((p) => p.label));
 
   return (
     <div className="options-wrap">
       <header className="options-header">
-        <h1>设置</h1>
-        <p>配置大模型接入。可自由选择接口协议、填写接口地址和模型名。API Key 仅存储在本地浏览器。</p>
+        <h1>{t('options.title')}</h1>
+        <p>{t('options.subtitle')}</p>
       </header>
 
       <div className="options-layout">
-        {/* 左侧：provider 列表 */}
+        {/* Left: provider list */}
         <aside className="provider-sidebar">
           <div className="sidebar-title">
-            <span>模型配置</span>
+            <span>{t('options.models')}</span>
           </div>
           <div className="provider-list">
             {providerList.map((p) => {
               const active = settings.activeProviderId === p.id;
-              const sel = selectedId === p.id;
+              const sel = settings.activeProviderId === p.id;
               const hasKey = !!p.apiKey || p.protocol === 'ollama';
+              // Resolve display name: built-in uses i18n key, custom uses stored label
+              const tpl = BUILTIN_PROVIDER_TEMPLATES.find((x) => x.id === p.id);
+              const name = tpl ? t(tpl.labelKey) : (p.label || t('placeholder.providerName'));
               return (
                 <div
                   key={p.id}
                   className={`provider-item${sel ? ' selected' : ''}${active ? ' active' : ''}`}
-                  onClick={() => setSelectedId(p.id)}
+                  onClick={() => activate(p.id)}
                 >
                   <div className="provider-item-main">
-                    <span className="provider-item-name">{p.label || '未命名'}</span>
+                    <span className="provider-item-name">{name}</span>
                     <span className={`provider-item-status${hasKey ? ' ok' : ''}`}>
-                      {active ? '● 启用中' : hasKey ? '已配置' : '未配置'}
+                      {active ? t('options.active') : hasKey ? t('options.configured') : t('options.notConfigured')}
                     </span>
                   </div>
                 </div>
@@ -134,127 +116,162 @@ export function App() {
             })}
           </div>
 
-          {/* 从模板添加 */}
+          {/* Add from template */}
           <details className="add-template">
-            <summary>+ 从模板添加</summary>
+            <summary>{t('options.addFromTemplate')}</summary>
             <div className="template-options">
-              {BUILTIN_PROVIDER_TEMPLATES.map((t) => (
+              {BUILTIN_PROVIDER_TEMPLATES.map((tp) => (
                 <button
-                  key={t.id}
+                  key={tp.id}
                   className="template-btn"
-                  onClick={() => addFromTemplate(t.id)}
-                  title={t.hint}
+                  title={tp.hintKey ? t(tp.hintKey) : undefined}
                 >
-                  {t.label}
+                  {t(tp.labelKey)}
                 </button>
               ))}
             </div>
           </details>
-          <button className="btn btn-secondary btn-sm btn-block" onClick={addCustom}>
-            + 新建自定义
+          <button className="btn btn-secondary btn-sm btn-block" onClick={() => {
+            const id = genId();
+            const newP: ProviderSettings = {
+              id, label: t('placeholder.providerName'), protocol: 'openai-compat',
+              baseURL: '', model: '', apiKey: '', isCustom: true,
+            };
+            setSettings((s) => ({ ...s, providers: { ...s.providers, [id]: newP } }));
+            activate(id);
+          }}>
+            {t('options.addCustom')}
           </button>
         </aside>
 
-        {/* 右侧：详情表单 */}
+        {/* Right: detail form */}
         <section className="provider-detail">
-          {selected ? (
+          {activeProvider ? (
             <>
               <div className="detail-header">
                 <input
                   className="input label-input"
-                  value={selected.label}
-                  onChange={(e) => updateField('label', e.target.value)}
-                  placeholder="配置名称"
+                  value={activeProvider.isCustom ? activeProvider.label : (activeTemplate ? t(activeTemplate.labelKey) : activeProvider.label)}
+                  onChange={(e) => setSettings((s) => ({
+                    ...s,
+                    providers: { ...s.providers, [s.activeProviderId]: { ...s.providers[s.activeProviderId], label: e.target.value } },
+                  }))}
+                  placeholder={t('options.labelName')}
                 />
                 <button
                   className="btn btn-primary btn-sm"
-                  onClick={() => setActive(selected.id)}
-                  disabled={settings.activeProviderId === selected.id}
+                  onClick={() => activate(activeProvider.id)}
+                  disabled={settings.activeProviderId === activeProvider.id}
                 >
-                  {settings.activeProviderId === selected.id ? '已启用' : '设为启用'}
+                  {settings.activeProviderId === activeProvider.id ? t('options.enabled') : t('options.setActive')}
                 </button>
-                {!selected.isCustom && (
-                  <span className="badge">模板</span>
-                )}
+                {!activeProvider.isCustom && <span className="badge">{t('options.template')}</span>}
                 {Object.keys(settings.providers).length > 1 && (
-                  <button className="btn btn-ghost btn-sm" onClick={() => removeProvider(selected.id)}>
-                    🗑 删除
+                  <button className="btn btn-ghost btn-sm" onClick={() => {
+                    setSettings((s) => {
+                      const providers = { ...s.providers };
+                      delete providers[activeProvider.id];
+                      const activeProviderId = s.activeProviderId === activeProvider.id
+                        ? Object.keys(providers)[0] : s.activeProviderId;
+                      return { ...s, providers, activeProviderId };
+                    });
+                  }}>
+                    {t('options.delete')}
                   </button>
                 )}
               </div>
 
               <div className="form-group">
-                <label className="form-label">接口协议</label>
+                <label className="form-label">{t('options.protocol')}</label>
                 <select
                   className="input"
-                  value={selected.protocol}
-                  onChange={(e) => updateField('protocol', e.target.value as LLMProtocol)}
+                  value={activeProvider.protocol}
+                  onChange={(e) => setSettings((s) => ({
+                    ...s,
+                    providers: { ...s.providers, [s.activeProviderId]: { ...s.providers[s.activeProviderId], protocol: e.target.value as LLMProtocol } },
+                  }))}
                 >
                   {PROTOCOL_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {o.label}（{o.desc}）
+                      {t(o.labelKey)}（{t(o.descKey)}）
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="form-group">
-                <label className="form-label">接口地址 (Base URL)</label>
+                <label className="form-label">{t('options.baseURL')}</label>
                 <input
                   className="input mono"
-                  value={selected.baseURL}
-                  onChange={(e) => updateField('baseURL', e.target.value)}
-                  placeholder="https://api.example.com/v1"
+                  value={activeProvider.baseURL}
+                  onChange={(e) => setSettings((s) => ({
+                    ...s,
+                    providers: { ...s.providers, [s.activeProviderId]: { ...s.providers[s.activeProviderId], baseURL: e.target.value } },
+                  }))}
+                  placeholder={t('placeholder.baseURL')}
                 />
-                <p className="form-hint">
-                  {selected.protocol === 'openai-compat' && '填到 /v1 这一级，例如 https://api.deepseek.com/v1'}
-                  {selected.protocol === 'claude' && '填到根域名，例如 https://api.anthropic.com'}
-                  {selected.protocol === 'ollama' && '本地服务地址，例如 http://localhost:11434'}
-                </p>
+                <p className="form-hint">{t(`hint.${activeProvider.protocol}`)}</p>
               </div>
 
               <div className="form-group">
-                <label className="form-label">模型名</label>
+                <label className="form-label">{t('options.model')}</label>
                 <input
                   className="input mono"
-                  value={selected.model}
-                  onChange={(e) => updateField('model', e.target.value)}
-                  placeholder="如 deepseek-chat / gpt-4o-mini / claude-3-5-sonnet-20241022"
+                  value={activeProvider.model}
+                  onChange={(e) => setSettings((s) => ({
+                    ...s,
+                    providers: { ...s.providers, [s.activeProviderId]: { ...s.providers[s.activeProviderId], model: e.target.value } },
+                  }))}
+                  placeholder={t('placeholder.model')}
                 />
               </div>
 
-              {selected.protocol !== 'ollama' && (
+              {activeProvider.protocol !== 'ollama' && (
                 <div className="form-group">
-                  <label className="form-label">API Key</label>
+                  <label className="form-label">{t('options.apiKey')}</label>
                   <div className="apikey-row">
                     <input
                       type={showKey ? 'text' : 'password'}
                       className="input mono"
-                      value={selected.apiKey}
-                      onChange={(e) => updateField('apiKey', e.target.value)}
-                      placeholder="sk-..."
+                      value={activeProvider.apiKey}
+                      onChange={(e) => updateApiKey(e.target.value)}
+                      placeholder={t('placeholder.apiKey')}
                     />
                     <button className="btn btn-secondary btn-sm" onClick={() => setShowKey((v) => !v)}>
-                      {showKey ? '隐藏' : '显示'}
+                      {showKey ? t('options.hide') : t('options.show')}
                     </button>
                   </div>
                 </div>
               )}
-              {selected.protocol === 'ollama' && (
+              {activeProvider.protocol === 'ollama' && (
                 <p className="form-hint ollama-hint">
-                  💡 Ollama 无需 API Key。请确保本地已运行 Ollama 并拉取了对应模型（<code>ollama pull {selected.model || 'llama3'}</code>）。
+                  {t('hint.ollamaNote', { cmd: `ollama pull ${activeProvider.model || 'llama3'}` })}
                 </p>
               )}
+
+              {/* Language setting */}
+              <div className="form-group">
+                <label className="form-label">{t('options.lang')}</label>
+                <select
+                  className="input"
+                  value={settings.uiLanguage}
+                  onChange={(e) => changeLang(e.target.value as 'auto' | 'zh' | 'en')}
+                >
+                  <option value="auto">{t('options.langAuto')}</option>
+                  <option value="zh">中文</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
             </>
           ) : (
-            <div className="empty-detail">从左侧选择或新建一个配置</div>
+            <div className="empty-detail">{t('common.loading')}</div>
           )}
         </section>
       </div>
 
       <footer className="options-footer">
-        {saved && <span className="saved-tip">✓ 已保存</span>}
-        <button className="btn btn-primary" onClick={handleSave}>保存设置</button>
+        {saved && <span className="saved-tip">{t('options.saved')}</span>}
+        <button className="btn btn-primary" onClick={handleSave}>{t('options.save')}</button>
       </footer>
     </div>
   );

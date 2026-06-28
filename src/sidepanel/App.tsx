@@ -6,25 +6,26 @@ import { TranslateView } from './views/TranslateView';
 import { ChatView } from './views/ChatView';
 import { loadSettings } from '@/storage';
 import { useStreamingSummary } from './hooks/useStreamingSummary';
+import { t } from '@/i18n';
 import type { BackgroundEvent, TranslationRecord } from '@/shared/messages';
 
 export function App() {
   const [tab, setTab] = useState<Tab>('summary');
   const [tabId, setTabId] = useState(0);
   const [configured, setConfigured] = useState(false);
-  const [providerLabel, setProviderLabel] = useState('未配置');
-  // 翻译记录按当前 tabId 显示（从 background 加载）
+  const [providerLabel, setProviderLabel] = useState(t('common.unconfigured'));
+  // Translation records shown for the current tabId (loaded from background)
   const [translations, setTranslations] = useState<TranslationRecord[]>([]);
 
-  // 摘要状态提升到 App 层：切 Tab 不丢失，切页面时从 background 恢复
+  // Summary state lifted to App: not lost on tab switch, restored from background on page switch
   const summary = useStreamingSummary();
 
-  // 加载配置
+  // Load config
   useEffect(() => {
     loadSettings().then((s) => {
       const p = s.providers[s.activeProviderId];
       setConfigured(!!p?.apiKey || p?.protocol === 'ollama');
-      setProviderLabel(p?.label ?? '未配置');
+      setProviderLabel(p?.label ?? t('common.unconfigured'));
     });
   }, []);
 
@@ -34,19 +35,19 @@ export function App() {
     chrome.runtime.sendMessage({ type: 'GET_TAB_STATE', tabId: id }).then((res) => {
       if (res?.type !== 'SUCCESS') return;
       const ts = res.data;
-      // 恢复摘要状态
+      // restore summary state
       summary.restore({
         status: ts.summary.status,
         text: ts.summary.text,
         error: ts.summary.error,
         usage: ts.summary.usage,
       });
-      // 恢复翻译记录
+      // restore translation records
       setTranslations(ts.translations ?? []);
     });
   };
 
-  // 初始化：获取当前 tab + 加载状态
+  // Init: get current tab + load state
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const id = tabs[0]?.id ?? 0;
@@ -55,17 +56,17 @@ export function App() {
     });
   }, []);
 
-  // 监听 tab 切换（background 广播）+ 翻译记录新增/更新
+  // Listen for tab switch (background broadcast) + translation add/update
   useEffect(() => {
     const listener = (event: BackgroundEvent) => {
       if (event.type === 'TAB_CHANGED' && event.tabId !== tabId) {
         setTabId(event.tabId);
         loadTabState(event.tabId);
       } else if (event.type === 'TRANSLATION_ADDED' && event.tabId === tabId) {
-        // 当前 tab 有新翻译，追加到列表头部
+        // new translation on current tab, prepend to list
         setTranslations((prev) => [event.record, ...prev]);
       } else if (event.type === 'TRANSLATION_UPDATED' && event.tabId === tabId) {
-        // 翻译流式更新，替换对应记录的 target
+        // translation streaming update, replace the matching record target
         setTranslations((prev) =>
           prev.map((t) => (t.id === event.record.id ? event.record : t))
         );

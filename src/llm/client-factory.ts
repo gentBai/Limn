@@ -31,6 +31,6 @@ export function createLLMClient(settings: ProviderSettings): LLMClient {
         model: settings.model,
       });
     default:
-      throw new Error(`不支持的协议: ${(settings as ProviderSettings).protocol}`);
+      throw new Error(`Unsupported protocol: ${(settings as ProviderSettings).protocol}`);
   }
 }

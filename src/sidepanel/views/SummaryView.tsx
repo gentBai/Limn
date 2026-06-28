@@ -1,5 +1,6 @@
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBox } from '../components/ErrorBox';
+import { t } from '@/i18n';
 import type { ErrorResponse, TokenUsage } from '@/shared/messages';
 
 interface SummaryViewProps {
@@ -17,9 +18,9 @@ export function SummaryView({ tabId, configured, status, text, error, usage, sum
     return (
       <EmptyState
         icon="🔑"
-        title="开始使用前需配置模型"
-        desc="添加你的 API Key 即可开始摘要网页内容。数据仅存储在本地浏览器。"
-        actionLabel="前往配置"
+        title={t('summary.emptyTitle')}
+        desc={t('summary.emptyDesc')}
+        actionLabel={t('summary.emptyAction')}
         onAction={() => chrome.runtime.openOptionsPage()}
       />
     );
@@ -29,7 +30,7 @@ export function SummaryView({ tabId, configured, status, text, error, usage, sum
     return (
       <div className="sp-content">
         <button className="btn btn-primary btn-lg btn-block" onClick={() => summarize(tabId)}>
-          ⚡ 一键生成摘要
+          {t('summary.generate')}
         </button>
       </div>
     );
@@ -53,7 +54,7 @@ export function SummaryView({ tabId, configured, status, text, error, usage, sum
       {status === 'extracting' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <span className="loading-dots"><span></span><span></span><span></span></span>
-          <span className="text-xs text-tertiary">正在分析网页内容...</span>
+          <span className="text-xs text-tertiary">{t('summary.analyzing')}</span>
         </div>
       )}
       <div className={`summary-text${status === 'streaming' ? ' streaming-text' : ''}`}>
@@ -62,17 +63,17 @@ export function SummaryView({ tabId, configured, status, text, error, usage, sum
       {status === 'done' && (
         <>
           <div className="action-bar">
-            <button className="btn btn-secondary btn-sm" onClick={() => navigator.clipboard.writeText(text)}>📋 复制</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => summarize(tabId)}>🔄 重新生成</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigator.clipboard.writeText(text)}>{t('summary.copy')}</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => summarize(tabId)}>{t('summary.regenerate')}</button>
             {usage && (
               <span className="token-usage">
-                消耗 {usage.input + usage.output} tokens
+                {t('summary.tokens', { total: usage.input + usage.output })}
               </span>
             )}
           </div>
           {usage && (
             <p className="text-xs text-tertiary token-detail">
-              输入 {usage.input} / 输出 {usage.output}
+              {t('summary.tokenDetail', { input: usage.input, output: usage.output })}
             </p>
           )}
         </>

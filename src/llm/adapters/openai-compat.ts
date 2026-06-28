@@ -55,7 +55,7 @@ export class OpenAICompatAdapter implements LLMClient {
         body: JSON.stringify(this.buildBody(req, false)),
       });
     } catch {
-      throw new LLMError(ErrorCode.NETWORK_ERROR, '网络连接失败', true);
+      throw new LLMError(ErrorCode.NETWORK_ERROR, 'Network error', true);
     }
     if (!resp.ok) throw this.httpError(resp.status);
     const data: OpenAIChunk & { choices: OpenAIChoice[] } = await resp.json();
@@ -74,7 +74,7 @@ export class OpenAICompatAdapter implements LLMClient {
         body: JSON.stringify(this.buildBody(req, true)),
       });
     } catch {
-      throw new LLMError(ErrorCode.NETWORK_ERROR, '网络连接失败', true);
+      throw new LLMError(ErrorCode.NETWORK_ERROR, 'Network error', true);
     }
     if (!resp.ok) throw this.httpError(resp.status);
     const reader = resp.body!.getReader();
@@ -93,7 +93,7 @@ export class OpenAICompatAdapter implements LLMClient {
         const parsed: OpenAIChunk = JSON.parse(trimmed);
         const delta = parsed.choices?.[0]?.delta?.content;
         if (delta) yield { delta, done: false };
-        // 流式 usage 通常在最后一个 chunk（choices 为空，只有 usage）
+        // streaming usage is usually in the last chunk (choices empty, usage only)
         if (parsed.usage) usage = parseUsage(parsed.usage);
       }
     }
@@ -121,7 +121,7 @@ export class OpenAICompatAdapter implements LLMClient {
     };
     if (req.options?.temperature !== undefined) body.temperature = req.options.temperature;
     if (req.options?.maxTokens !== undefined) body.max_tokens = req.options.maxTokens;
-    // 请求流式 usage（OpenAI 官方及多数兼容厂商支持）
+    // request streaming usage (supported by OpenAI and most compatible vendors)
     if (stream) body.stream_options = { include_usage: true };
     return body;
   }
@@ -130,7 +130,7 @@ export class OpenAICompatAdapter implements LLMClient {
     const code = classifyHttpError(status);
     return new LLMError(
       code,
-      code === ErrorCode.INVALID_API_KEY ? 'API Key 无效或已过期' : '模型服务返回错误',
+      code === ErrorCode.INVALID_API_KEY ? 'Invalid API key' : 'Model service error',
       code === ErrorCode.NETWORK_ERROR || code === ErrorCode.RATE_LIMITED
     );
   }

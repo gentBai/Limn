@@ -5,7 +5,8 @@ export const manifest = defineManifest({
   manifest_version: 3,
   name: 'Limn',
   version: pkg.version,
-  description: 'Limn — Illuminate every page. AI 驱动的网页阅读助手：摘要、翻译、问答',
+  description: 'AI-powered web reading assistant — summaries, translation, multi-model support',
+  default_locale: 'en',
   icons: {
     16: 'public/icons/icon-16.png',
     24: 'public/icons/icon-24.png',

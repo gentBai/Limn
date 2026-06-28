@@ -1,5 +1,6 @@
 import type { Settings, ProviderSettings } from './schema';
 import { BUILTIN_PROVIDER_TEMPLATES } from '@/llm/providers';
+import { t } from '@/i18n';
 
 const KEY = 'settings';
 
@@ -11,7 +12,7 @@ export const DEFAULT_SETTINGS: Settings = {
   providers: {
     [DEFAULT_DEEPSEEK.id]: {
       id: DEFAULT_DEEPSEEK.id,
-      label: DEFAULT_DEEPSEEK.label,
+      label: t('provider.deepseek'),
       protocol: DEFAULT_DEEPSEEK.protocol,
       baseURL: DEFAULT_DEEPSEEK.baseURL,
       model: DEFAULT_DEEPSEEK.defaultModel,
@@ -21,13 +22,14 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   translateTargetLang: 'zh',
   summaryStyle: 'standard',
+  uiLanguage: 'auto',
 };
 
 export async function loadSettings(): Promise<Settings> {
   const result = await chrome.storage.local.get(KEY);
   const saved = result[KEY] as Partial<Settings> | undefined;
   if (!saved) return { ...DEFAULT_SETTINGS };
-  // 合并：保留用户配置，但补齐新字段（向后兼容旧结构）
+  // Merge: keep user config but fill in new fields (backward compatible with old structure)
   return {
     ...DEFAULT_SETTINGS,
     ...saved,

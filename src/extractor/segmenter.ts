@@ -1,6 +1,6 @@
 export function segment(text: string): string[] {
   return text
-    .split(/\n\s*\n+/)            // 按空行分段
-    .map((p) => p.replace(/\s+/g, ' ').trim())  // 段内换行合并
+    .split(/\n\s*\n+/)            // split by blank lines
+    .map((p) => p.replace(/\s+/g, ' ').trim())  // collapse intra-paragraph newlines
     .filter((p) => p.length > 0);
 }

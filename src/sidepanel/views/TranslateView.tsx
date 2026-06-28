@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TranslationRecord } from '@/shared/messages';
 import { EmptyState } from '../components/EmptyState';
+import { t } from '@/i18n';
 
 interface TranslateViewProps {
   translations: TranslationRecord[];
@@ -20,8 +21,8 @@ export function TranslateView({ translations }: TranslateViewProps) {
     return (
       <EmptyState
         icon="🌐"
-        title="划词翻译"
-        desc="在网页上选中任意文字，翻译结果会自动记录到这里。最新的翻译显示在最前面。"
+        title={t('translate.emptyTitle')}
+        desc={t('translate.emptyDesc')}
       />
     );
   }
@@ -29,20 +30,20 @@ export function TranslateView({ translations }: TranslateViewProps) {
   return (
     <div className="sp-content">
       <div className="translate-header">
-        <span className="text-sm font-medium">翻译记录</span>
-        <span className="badge">{translations.length} 条</span>
+        <span className="text-sm font-medium">{t('translate.records')}</span>
+        <span className="badge">{t('translate.count', { count: translations.length })}</span>
       </div>
       <div className="translate-list">
-        {translations.map((t) => {
-          const expanded = expandedId === t.id;
+        {translations.map((tr) => {
+          const expanded = expandedId === tr.id;
           return (
-            <div key={t.id} className="translate-item">
-              <div className="translate-item-source" onClick={() => setExpandedId(expanded ? null : t.id)}>
-                {t.source}
+            <div key={tr.id} className="translate-item">
+              <div className="translate-item-source" onClick={() => setExpandedId(expanded ? null : tr.id)}>
+                {tr.source}
               </div>
-              <div className="translate-item-target">{t.target}</div>
+              <div className="translate-item-target">{tr.target}</div>
               <div className="translate-item-meta">
-                <span className="text-xs text-tertiary">{formatTime(t.at)}</span>
+                <span className="text-xs text-tertiary">{formatTime(tr.at)}</span>
               </div>
             </div>
           );

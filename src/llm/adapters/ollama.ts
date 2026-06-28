@@ -4,14 +4,14 @@ import { ErrorCode } from '@/shared/messages';
 
 export interface OllamaConfig {
   providerId: string;
-  baseURL: string;   // 如 http://localhost:11434
+  baseURL: string;   // e.g. http://localhost:11434
   model: string;
 }
 
 interface OllamaResponse {
   message?: { role: string; content: string };
   done?: boolean;
-  // Ollama 在 done=true 的最后一个响应里携带 token 统计
+  // Ollama carries token stats in the last done=true response
   prompt_eval_count?: number;
   eval_count?: number;
 }
@@ -31,9 +31,9 @@ export class OllamaAdapter implements LLMClient {
         body: JSON.stringify(this.buildBody(req, false)),
       });
     } catch {
-      throw new LLMError(ErrorCode.OLLAMA_NOT_RUNNING, '本地模型服务未运行，请检查 Ollama 是否已启动', true);
+      throw new LLMError(ErrorCode.OLLAMA_NOT_RUNNING, 'Ollama not running', true);
     }
-    if (!resp.ok) throw new LLMError(ErrorCode.MODEL_ERROR, `Ollama 返回错误 ${resp.status}`, false);
+    if (!resp.ok) throw new LLMError(ErrorCode.MODEL_ERROR, `Ollama error ${resp.status}`, false);
     const data: OllamaResponse = await resp.json();
     const usage: TokenUsage | undefined = data.prompt_eval_count !== undefined || data.eval_count !== undefined
       ? { input: data.prompt_eval_count ?? 0, output: data.eval_count ?? 0 }
@@ -50,9 +50,9 @@ export class OllamaAdapter implements LLMClient {
         body: JSON.stringify(this.buildBody(req, true)),
       });
     } catch {
-      throw new LLMError(ErrorCode.OLLAMA_NOT_RUNNING, '本地模型服务未运行，请检查 Ollama 是否已启动', true);
+      throw new LLMError(ErrorCode.OLLAMA_NOT_RUNNING, 'Ollama not running', true);
     }
-    if (!resp.ok) throw new LLMError(ErrorCode.MODEL_ERROR, `Ollama 返回错误 ${resp.status}`, false);
+    if (!resp.ok) throw new LLMError(ErrorCode.MODEL_ERROR, `Ollama error ${resp.status}`, false);
     const reader = resp.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -69,7 +69,7 @@ export class OllamaAdapter implements LLMClient {
         const parsed: OllamaResponse = JSON.parse(trimmed);
         const delta = parsed.message?.content;
         if (delta) yield { delta, done: false };
-        // done=true 的最后行携带 token 统计
+        // the last done=true line carries token stats
         if (parsed.done && (parsed.prompt_eval_count !== undefined || parsed.eval_count !== undefined)) {
           usage = { input: parsed.prompt_eval_count ?? 0, output: parsed.eval_count ?? 0 };
         }
@@ -81,10 +81,10 @@ export class OllamaAdapter implements LLMClient {
   async healthCheck(): Promise<HealthStatus> {
     try {
       const resp = await fetch(`${this.cfg.baseURL}/api/tags`);
-      if (!resp.ok) return { ok: false, message: `状态码 ${resp.status}` };
-      return { ok: true, message: 'Ollama 服务正常' };
+      if (!resp.ok) return { ok: false, message: `Status ${resp.status}` };
+      return { ok: true, message: 'Ollama is running' };
     } catch {
-      return { ok: false, message: 'Ollama 未运行' };
+      return { ok: false, message: 'Ollama not running' };
     }
   }
 

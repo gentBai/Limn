@@ -3,6 +3,7 @@ import { buildTranslatePrompt } from '@/prompts/translate';
 import { getActiveProviderSettings } from '@/storage';
 import { LLMError } from '@/llm/adapters/openai-compat';
 import { ErrorCode, type TranslateResult } from '@/shared/messages';
+import { getLocale } from '@/i18n';
 
 export async function handleTranslate(text: string): Promise<TranslateResult> {
   const settings = await getActiveProviderSettings();
@@ -10,6 +11,6 @@ export async function handleTranslate(text: string): Promise<TranslateResult> {
     throw new LLMError(ErrorCode.MISSING_API_KEY, '尚未配置 API Key', false);
   }
   const client = createLLMClient(settings);
-  const res = await client.complete({ messages: buildTranslatePrompt(text) });
+  const res = await client.complete({ messages: buildTranslatePrompt(text, getLocale()) });
   return { translated: res.text };
 }

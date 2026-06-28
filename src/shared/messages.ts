@@ -69,9 +69,9 @@ export type SummarizeChunk =
 
 /** 流式翻译 chunk（通过 port 推送给 content-script 气泡 + sidepanel 记录） */
 export type TranslateStreamChunk =
-  | { kind: 'created'; record: TranslationRecord }    // 空记录已建
-  | { kind: 'streaming'; delta: string }              // 译文增量
-  | { kind: 'done'; record: TranslationRecord }       // 完成（含最终译文）
+  | { kind: 'created'; record: TranslationRecord }    // empty record created
+  | { kind: 'streaming'; delta: string }              // translation delta
+  | { kind: 'done'; record: TranslationRecord }       // done (with final translation)
   | { kind: 'error'; error: ErrorResponse };
 
 /** background 主动推给 sidepanel 的事件 */

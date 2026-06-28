@@ -1,21 +1,22 @@
+import { t } from '@/i18n';
+
 export type Tab = 'summary' | 'translate' | 'chat';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'summary', label: '摘要' },
-  { id: 'translate', label: '翻译' },
-  { id: 'chat', label: '对话' },
-];
-
 export function TabNav({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'summary', label: t('tab.summary') },
+    { id: 'translate', label: t('tab.translate') },
+    { id: 'chat', label: t('tab.chat') },
+  ];
   return (
     <nav className="sp-tabs">
-      {TABS.map((t) => (
+      {tabs.map((tb) => (
         <button
-          key={t.id}
-          className={`sp-tab${active === t.id ? ' active' : ''}`}
-          onClick={() => onChange(t.id)}
+          key={tb.id}
+          className={`sp-tab${active === tb.id ? ' active' : ''}`}
+          onClick={() => onChange(tb.id)}
         >
-          {t.label}
+          {tb.label}
         </button>
       ))}
     </nav>

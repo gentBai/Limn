@@ -1,4 +1,5 @@
 import bubbleCss from './bubble.css?raw';
+import { t } from '@/i18n';
 
 /**
  * 划词翻译气泡。使用 Shadow DOM 隔离样式。
@@ -24,12 +25,12 @@ export class TranslateBubble {
 
   /** 判断事件是否发生在气泡内部（点击气泡本身时不应隐藏/重置） */
   private isOnBubble(e: MouseEvent): boolean {
-    // composedPath 能穿透 Shadow DOM 边界
+    // composedPath penetrates Shadow DOM boundary
     return e.composedPath().includes(this.host);
   }
 
   private onMouseUp = (e: MouseEvent) => {
-    // 点击气泡本身产生的 mouseup 不应触发选区重判
+    // mouseup from clicking the bubble itself should not trigger selection re-evaluation
     if (this.isOnBubble(e)) return;
 
     const sel = window.getSelection();
@@ -44,19 +45,19 @@ export class TranslateBubble {
     this.bubble.classList.remove('ar-expanded');
     this.bubble.style.top = `${rect.top + window.scrollY - 36}px`;
     this.bubble.style.left = `${rect.left + window.scrollX + rect.width / 2 - 30}px`;
-    this.bubble.textContent = '🌐 翻译';
+    this.bubble.textContent = t('bubble.translate');
     this.bubble.onclick = async () => {
-      this.bubble.textContent = '...';
+      this.bubble.textContent = t('bubble.translating');
       this.bubble.classList.add('ar-expanded');
       try {
         const translated = await this.translate(text, (partial) => {
-          // 流式逐字更新气泡
+          // Stream-fill the bubble token by token
           this.bubble.textContent = partial.slice(0, 200);
         });
         this.bubble.textContent = translated.slice(0, 200);
         this.bubble.classList.add('ar-expanded');
       } catch {
-        this.bubble.textContent = '翻译失败';
+        this.bubble.textContent = t('bubble.failed');
       }
     };
   };

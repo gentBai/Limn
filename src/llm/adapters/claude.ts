@@ -6,7 +6,7 @@ import { ErrorCode } from '@/shared/messages';
 
 export interface ClaudeConfig {
   providerId: string;
-  baseURL: string;   // 如 https://api.anthropic.com
+  baseURL: string;   // e.g. https://api.anthropic.com
   apiKey: string;
   model: string;
 }
@@ -18,7 +18,7 @@ interface ClaudeContent {
 interface ClaudeResponse {
   content?: ClaudeContent[];
   usage?: { input_tokens?: number; output_tokens?: number };
-  // 流式事件
+  // streaming events
   type?: string;
   message?: { usage?: { input_tokens?: number; output_tokens?: number } };
   delta?: { type: string; text?: string };
@@ -54,7 +54,7 @@ export class ClaudeAdapter implements LLMClient {
         body: JSON.stringify(this.buildBody(req, false)),
       });
     } catch {
-      throw new LLMError(ErrorCode.NETWORK_ERROR, '网络连接失败', true);
+      throw new LLMError(ErrorCode.NETWORK_ERROR, 'Network error', true);
     }
     if (!resp.ok) throw this.httpError(resp.status);
     const data: ClaudeResponse = await resp.json();
@@ -74,7 +74,7 @@ export class ClaudeAdapter implements LLMClient {
         body: JSON.stringify(this.buildBody(req, true)),
       });
     } catch {
-      throw new LLMError(ErrorCode.NETWORK_ERROR, '网络连接失败', true);
+      throw new LLMError(ErrorCode.NETWORK_ERROR, 'Network error', true);
     }
     if (!resp.ok) throw this.httpError(resp.status);
     const reader = resp.body!.getReader();
@@ -93,15 +93,15 @@ export class ClaudeAdapter implements LLMClient {
         const jsonStr = dataLine.replace(/^data:\s*/, '').trim();
         if (!jsonStr) continue;
         const parsed: ClaudeResponse = JSON.parse(jsonStr);
-        // content_block_delta 携带文本增量
+        // content_block_delta carries text delta
         if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
           yield { delta: parsed.delta.text, done: false };
         }
-        // message_start 携带 input_tokens
+        // message_start carries input_tokens
         if (parsed.type === 'message_start' && parsed.message?.usage?.input_tokens !== undefined) {
           usage = { input: parsed.message.usage.input_tokens, output: parsed.message.usage.output_tokens ?? 0 };
         }
-        // message_delta 携带累计 output_tokens
+        // message_delta carries cumulative output_tokens
         if (parsed.type === 'message_delta' && parsed.usage?.output_tokens !== undefined) {
           usage = { input: usage?.input ?? 0, output: parsed.usage.output_tokens };
         }
@@ -140,7 +140,7 @@ export class ClaudeAdapter implements LLMClient {
     const code = classifyHttpError(status);
     return new LLMError(
       code,
-      code === ErrorCode.INVALID_API_KEY ? 'API Key 无效或已过期' : '模型服务返回错误',
+      code === ErrorCode.INVALID_API_KEY ? 'Invalid API key' : 'Model service error',
       code === ErrorCode.NETWORK_ERROR || code === ErrorCode.RATE_LIMITED
     );
   }

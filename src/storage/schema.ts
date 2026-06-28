@@ -25,6 +25,8 @@ export interface Settings {
   providers: Record<string, ProviderSettings>;
   translateTargetLang: string;
   summaryStyle: 'concise' | 'standard' | 'detailed';
+  /** UI 语言：'auto'（跟随浏览器）/ 'zh' / 'en' */
+  uiLanguage: 'auto' | 'zh' | 'en';
 }
 
 export interface StorageSchema {

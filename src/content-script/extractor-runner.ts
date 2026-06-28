@@ -8,7 +8,7 @@ import { extractPageContent } from '@/extractor';
 export function setupExtractorListener() {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.type === 'EXTRACT_CONTENT') {
-      // 用 setTimeout(0) 确保在异步上下文中执行，避免同步 sendResponse 的竞态
+      // Use setTimeout(0) to run in an async context, avoiding sync sendResponse race
       setTimeout(() => {
         try {
           const content = extractPageContent(document, location.href);
@@ -18,7 +18,7 @@ export function setupExtractorListener() {
           sendResponse({ error: String(e) });
         }
       }, 0);
-      return true; // 保持通道开启，等异步 sendResponse
+      return true; // keep channel open for async sendResponse
     }
   });
 }
