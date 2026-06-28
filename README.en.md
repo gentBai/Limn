@@ -185,4 +185,4 @@ Limn carries this imagery forward: **using AI to "illuminate" the essence of eve
 
 ## 📄 License
 
-ISC
+[GPL-3.0](./LICENSE) © 2026 gentBai

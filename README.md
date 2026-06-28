@@ -185,4 +185,4 @@ Limn 延续这个意象：**用 AI 为每一页网页「点亮」要义**。
 
 ## 📄 License
 
-ISC
+[GPL-3.0](./LICENSE) © 2026 gentBai
