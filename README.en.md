@@ -4,7 +4,9 @@
 
 **Illuminate every page.**
 
-An AI-powered web reading assistant — one-click summaries, hover translation, and seamless multi-model switching.
+An AI-powered web reading assistant — one-click summaries, selection interpretation, multi-turn chat, and seamless multi-model switching.
+
+English · [简体中文](./README.md)
 
 [Features](#-features) · [Architecture](#-architecture) · [Quick Start](#-quick-start) · [Configuration](#-model-configuration) · [Tech Stack](#-tech-stack)
 
@@ -19,9 +21,9 @@ Limn is a **Chrome Extension** (Manifest V3) that turns any web page into conten
 | Capability | Description |
 |------------|-------------|
 | **📄 One-Click Summary** | Extracts the main content → structured summary (core ideas / key points / who should read), with **token-by-token streaming** and **token usage** display |
-| **🌐 Hover Translation** | Select any text to get an in-place translation bubble (streamed token-by-token); translations are also **recorded in the sidebar**, isolated per tab |
+| **💬 Ask AI** | Select any text and the AI gives you the **gist + key points** (not a plain translation); every selection and follow-up flows into a **single conversation stream** where you can keep asking questions based on the page |
 | **🔀 Multi-Model** | OpenAI / DeepSeek / Zhipu GLM / Anthropic Claude / Ollama (local) — works out of the box, freely switchable |
-| **🗂 Per-Tab Isolation** | Each tab keeps its own summary and translation history independently; switching tabs preserves state (backed by `chrome.storage.session`) |
+| **🗂 Per-Tab Isolation** | Each tab keeps its own summary and conversation independently; switching tabs preserves state (backed by `chrome.storage.session`) |
 
 > **Privacy-first**: API keys and configuration are stored only in the local browser (`chrome.storage`) and never pass through any third-party server. With Ollama, data never leaves your machine.
 
@@ -32,23 +34,22 @@ Limn is a **Chrome Extension** (Manifest V3) that turns any web page into conten
 A Manifest V3 multi-component architecture with clear separation of concerns, message-driven:
 
 ```
-┌─────────────────┐   EXTRACT_CONTENT   ┌──────────────────────┐
-│  content-script │ ───────────────────▶│  background (worker) │
-│  · extraction    │◀─── streaming ──────│  · message bus        │
-│  · hover bubble  │                     │  · LLM calls (stream) │
-└─────────────────┘                     │  · TabState mgmt      │
-                                        │  · cache / errors     │
-                                        └──────────┬───────────┘
-        ┌──────────────────────────────────────────┘
+┌─────────────────┐   EXTRACT_CONTENT    ┌──────────────────────┐
+│  content-script │ ───────────────────▶ │  background (worker) │
+│  · extraction    │◀──── streaming ──────│  · message bus        │
+│  · hover bubble  │                      │  · LLM calls (stream) │
+└─────────────────┘                      │  · TabState mgmt      │
+                                         │  · cache / errors     │
+                                         └──────────┬───────────┘
+        ┌───────────────────────────────────────────┘
         ▼
-┌─────────────────┐  SUMMARIZE/TRANSLATE ┌──────────────────────┐
-│   sidePanel     │ ────────────────────▶│   LLM Adapter Layer   │
-│   (React)       │◀───── streaming ──────│  openai-compat        │
-│  · summary/token│                       │  claude               │
-│  · translations │                       │  ollama               │
-│  · chat (v1.1)  │                       └──────────────────────┘
-└─────────────────┘
-        │  TAB_CHANGED / TRANSLATION_UPDATED events
+┌─────────────────┐  SUMMARIZE / CHAT   ┌──────────────────────┐
+│   sidePanel     │ ──────────────────▶ │   LLM Adapter Layer   │
+│   (React)       │◀──── streaming ─────│  openai-compat        │
+│  · summary/token│                     │  claude               │
+│  · Ask AI       │                     │  ollama               │
+└─────────────────┘                     └──────────────────────┘
+        │  TAB_CHANGED / CHAT_UPDATED events
         │ optionsPage (React)
         ▼
    Model config / Provider management
@@ -56,11 +57,11 @@ A Manifest V3 multi-component architecture with clear separation of concerns, me
 
 **Design highlights:**
 
-- **content-script** — Extracts main content with Readability, performs segmentation and language detection, recognizes content types (GitHub / arXiv / articles); the translation bubble uses Shadow DOM for style isolation and fills the translation token-by-token.
+- **content-script** — Extracts main content with Readability, performs segmentation and language detection, recognizes content types (GitHub / arXiv / articles); the selection bubble uses Shadow DOM for style isolation and streams the full AI interpretation token-by-token.
 - **background service worker** — The message bus and streaming hub: routes requests, calls the LLM, maintains `TabState` (per-tabId isolation), and unifies error codes.
 - **LLM Adapter Layer** — Three protocol adapters (`openai-compat` / `claude` / `ollama`) abstract away vendor differences and uniformly parse token usage; adding a model only requires implementing `LLMProtocol`.
-- **TabState (per-tab isolation)** — Stores `{ pageContent, summary, translations }` keyed by tabId in `chrome.storage.session`, surviving service-worker restarts; the sidebar auto-loads the matching state on tab switch.
-- **sidePanel (React)** — The main UI; tab switches don't lose state; listens to `TAB_CHANGED` / `TRANSLATION_UPDATED` events for real-time refresh.
+- **TabState (per-tab isolation)** — Stores `{ pageContent, summary, chat }` keyed by tabId in `chrome.storage.session`, surviving service-worker restarts; the sidebar auto-loads the matching state on tab switch.
+- **sidePanel (React)** — The main UI with two tabs (Summary / Ask AI); listens to `TAB_CHANGED` / `CHAT_UPDATED` events for real-time refresh, and auto-switches to the conversation tab when a selection interpretation arrives.
 
 ---
 
@@ -126,13 +127,12 @@ You can **freely modify any field** (URL / model / key) on top of a template, or
 src/
 ├── manifest.ts                 # Manifest V3 manifest (auto-injects version)
 ├── background/                 # Service Worker: message routing + streaming + TabState
-│   ├── background.ts           # Entry (summary/translate port handlers)
+│   ├── background.ts           # Entry (summary / chat port handlers)
 │   ├── tab-state.ts            # Per-tab state management (session storage)
-│   ├── message-router.ts
-│   └── handlers/               # translate handler
+│   └── message-router.ts
 ├── content-script/             # Scripts injected into pages
 │   ├── extractor-runner.ts     # Responds to content extraction requests
-│   ├── selection-bubble/       # Translation bubble (Shadow DOM, streaming)
+│   ├── selection-bubble/       # Selection bubble (Shadow DOM, streams AI interpretation)
 │   └── index.ts
 ├── extractor/                  # Content extraction: readability + segmentation + lang detect
 ├── llm/                        # LLM adapter layer
@@ -140,12 +140,13 @@ src/
 │   ├── client-factory.ts       # Routes by protocol
 │   ├── providers.ts            # Built-in Provider templates
 │   └── types.ts
-├── prompts/                    # Prompt construction (summary / translate)
+├── prompts/                    # Prompt construction (summary / chat)
 ├── sidepanel/                  # Main UI (React)
-│   ├── views/                  # Summary / Translate / Chat
+│   ├── views/                  # Summary / Ask
 │   ├── components/
-│   └── hooks/                  # useStreamingSummary
-├── options/                    # Config page (React): provider list + detail form
+│   └── hooks/                  # useStreamingSummary / useChat
+├── options/                    # Config page (React): provider list + detail form + language switch
+├── i18n/                       # Lightweight i18n (zh / en, follows browser or manual override)
 ├── storage/                    # chrome.storage wrapper + schema
 └── shared/                     # Shared types & message protocol (TabState / stream chunks)
 ```
@@ -159,7 +160,7 @@ npm test            # Run once
 npm run test:watch  # Watch mode
 ```
 
-Covers content extraction, all three LLM adapters (including stream parsing), message routing, TabState per-tab isolation, prompt construction, and the storage layer — 31 test cases in total.
+Covers content extraction, all three LLM adapters (including stream parsing and token usage), message routing, TabState per-tab isolation, prompt construction, and the storage layer — 34 test cases in total.
 
 ---
 
@@ -167,9 +168,8 @@ Covers content extraction, all three LLM adapters (including stream parsing), me
 
 | Version | Status | Scope |
 |---------|--------|-------|
-| **MVP** | ✅ Released | Summary (streaming + tokens) / Hover translation (streaming + history) / Multi-model / Per-tab isolation |
-| **v1.1** | 🚧 Planned | Page Q&A chat (multi-turn follow-ups based on current page content) |
-| **v1.2** | 📋 TBD | Site-specific extraction (GitHub README / arXiv), stream interruption |
+| **v1.0** | ✅ Released | Summary (streaming + tokens) / Ask AI (selection interpretation + multi-turn chat) / Multi-model / Per-tab isolation / Chinese & English |
+| **v1.1** | 📋 TBD | Site-specific extraction (GitHub README / arXiv), stream interruption, conversation-history truncation |
 
 ---
 
