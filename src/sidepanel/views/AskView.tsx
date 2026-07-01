@@ -4,7 +4,7 @@ import { t } from '@/i18n';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBox } from '../components/ErrorBox';
 import type { ErrorResponse } from '@/shared/messages';
-import logoUrl from '../../../public/icons/icon.svg?url';
+import logoUrl from '/icons/icon.svg?url';
 
 /** AI avatar: the Limn logo for AI messages, emoji for the user */
 function Avatar({ role }: { role: 'user' | 'assistant' | 'system' }) {

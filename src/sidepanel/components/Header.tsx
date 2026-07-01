@@ -1,4 +1,4 @@
-import logoUrl from '../../../public/icons/icon.svg?url';
+import logoUrl from '/icons/icon.svg?url';
 
 export function Header({ providerLabel }: { providerLabel: string }) {
   return (
