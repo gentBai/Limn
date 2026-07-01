@@ -4,6 +4,7 @@ import { BUILTIN_PROVIDER_TEMPLATES, PROTOCOL_OPTIONS } from '@/llm/providers';
 import type { Settings, ProviderSettings } from '@/storage/schema';
 import type { LLMProtocol } from '@/llm/types';
 import { t, initLocale, setLocale } from '@/i18n';
+import { upsertTemplateProvider } from './provider-templates';
 
 /** Generate a simple unique id (for custom providers) */
 function genId(): string {
@@ -125,6 +126,7 @@ export function App() {
                   key={tp.id}
                   className="template-btn"
                   title={tp.hintKey ? t(tp.hintKey) : undefined}
+                  onClick={() => setSettings((s) => upsertTemplateProvider(s, tp, t(tp.labelKey)))}
                 >
                   {t(tp.labelKey)}
                 </button>
