@@ -24,7 +24,7 @@ export function useChat() {
   ) => {
     setState({ status: 'streaming', streamingReply: '', error: null });
     replyRef.current = '';
-    const port = chrome.runtime.connect({ name: `chat:${mode}:${payload}` });
+    const port = chrome.runtime.connect({ name: `chat:${tabId}:${mode}:${payload}` });
     port.onMessage.addListener((chunk: ChatStreamChunk) => {
       if (chunk.kind === 'userAdded') {
         onUserAdded(chunk.message);

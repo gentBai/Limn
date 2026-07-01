@@ -3,10 +3,12 @@ import { buildSummaryPrompt } from '@/prompts/summary';
 import { buildChatPrompt, wrapSelectionAsUserMessage } from '@/prompts/chat';
 import { getActiveProviderSettings } from '@/storage';
 import { LLMError } from '@/llm/adapters/openai-compat';
+import { hasRequiredCredentials } from '@/llm/provider-auth';
 import type { RequestMessage, SummarizeChunk, BackgroundEvent, ChatStreamChunk, ConversationMessage } from '@/shared/messages';
 import { ErrorCode } from '@/shared/messages';
 import { initLocale, getLocale } from '@/i18n';
 import { getErrorMessage } from '@/llm/error-messages';
+import { getContentForChat, parseChatPortName } from './chat-flow';
 import {
   getTabState,
   setPageContent,
@@ -102,7 +104,7 @@ chrome.runtime.onConnect.addListener((port) => {
       const tabId = Number(port.name.split(':')[1]);
       try {
         const settings = await getActiveProviderSettings();
-        if (!settings || !settings.apiKey) {
+        if (!hasRequiredCredentials(settings)) {
           await updateSummary(tabId, { status: 'error', error: { code: ErrorCode.MISSING_API_KEY, message: getErrorMessage(ErrorCode.MISSING_API_KEY, getLocale()), retryable: false } });
           port.postMessage(errSummaryChunk(ErrorCode.MISSING_API_KEY));
           return port.disconnect();
@@ -131,19 +133,21 @@ chrome.runtime.onConnect.addListener((port) => {
       }
     })();
   }
-  // Streaming chat: long-lived connection, port name format chat:<mode>:<payload>
-  // mode = "selection" (payload = selected text) | "question" (payload = user question)
-  // tabId is obtained from port.sender.tab.id (content-script cannot know its own tabId)
+  // Streaming chat: long-lived connection.
+  // sidepanel format: chat:<tabId>:<mode>:<payload>
+  // content-script legacy format: chat:<mode>:<payload>, tabId comes from sender.tab.id
   if (port.name.startsWith('chat:')) {
-    const rest = port.name.slice('chat:'.length);
-    const colonIdx = rest.indexOf(':');
-    const mode = rest.slice(0, colonIdx) as 'selection' | 'question';
-    const payload = rest.slice(colonIdx + 1); // payload may contain colons
-    const tabId = port.sender?.tab?.id ?? 0;
+    const parsed = parseChatPortName(port.name, port.sender?.tab?.id);
+    if (!parsed) {
+      port.postMessage(errChatChunk(ErrorCode.MODEL_ERROR));
+      port.disconnect();
+      return;
+    }
+    const { tabId, mode, payload } = parsed;
     (async () => {
       try {
         const settings = await getActiveProviderSettings();
-        if (!settings || !settings.apiKey) {
+        if (!hasRequiredCredentials(settings)) {
           port.postMessage(errChatChunk(ErrorCode.MISSING_API_KEY));
           return port.disconnect();
         }
@@ -160,7 +164,7 @@ chrome.runtime.onConnect.addListener((port) => {
 
         // 2. Load current state (page content + full history)
         const state = await getTabState(tabId);
-        const content = contentCache.get(tabId) ?? state.pageContent;
+        const content = await getContentForChat(tabId, contentCache.get(tabId), state, extractFromTab);
         const client = createLLMClient(settings);
         const messages = buildChatPrompt(content, state.chat, locale);
 
