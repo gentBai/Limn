@@ -50,7 +50,9 @@ export function buildChatPrompt(
   // Strip UI metadata (fromSelection, at) when sending to the LLM API
   const historyBase: ChatMessage[] = history.map((m) => ({
     role: m.role,
-    content: m.content,
+    content: m.fromSelection
+      ? selectionInstruction(m.content, locale)
+      : m.content,
   }));
   return [system, ...historyBase];
 }
@@ -61,13 +63,16 @@ export function buildChatPrompt(
  * not a free-form question.
  */
 export function wrapSelectionAsUserMessage(text: string, locale: Locale): ConversationMessage {
-  const content = locale === 'en'
-    ? `I selected this text, please interpret it:\n\n${text}`
-    : `我选中了这段文字，请解读一下：\n\n${text}`;
   return {
     role: 'user',
-    content,
+    content: text,
     fromSelection: true,
     at: Date.now(),
   };
+}
+
+function selectionInstruction(text: string, locale: Locale): string {
+  return locale === 'en'
+    ? `I selected this text, please interpret it:\n\n${text}`
+    : `我选中了这段文字，请解读一下：\n\n${text}`;
 }
