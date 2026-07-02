@@ -3,6 +3,7 @@ import type { ConversationMessage } from '@/shared/messages';
 import { t } from '@/i18n';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBox } from '../components/ErrorBox';
+import { Markdown } from '../components/Markdown';
 import type { ErrorResponse } from '@/shared/messages';
 import logoUrl from '/icons/icon.svg?url';
 
@@ -98,7 +99,7 @@ export function AskView({
                 <span className="chat-msg-tag">{t('ask.selectionTag')}</span>
               )}
               <div className={`chat-msg-bubble chat-msg-bubble-${m.role === 'user' ? 'user' : 'ai'}`}>
-                {m.content}
+                {m.role === 'user' ? m.content : <Markdown content={m.content} />}
               </div>
               <span className="chat-msg-time">{formatTime(m.at)}</span>
             </div>
@@ -116,7 +117,7 @@ export function AskView({
             </div>
             <div className="chat-msg-body">
               <div className={`chat-msg-bubble chat-msg-bubble-ai${!streamingReply ? ' chat-msg-pending' : ''}`}>
-                {streamingReply || t('ask.thinking')}
+                {streamingReply ? <Markdown content={streamingReply} /> : t('ask.thinking')}
               </div>
             </div>
           </div>

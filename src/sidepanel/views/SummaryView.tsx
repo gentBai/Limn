@@ -1,5 +1,6 @@
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBox } from '../components/ErrorBox';
+import { Markdown } from '../components/Markdown';
 import { t } from '@/i18n';
 import type { ErrorResponse, TokenUsage } from '@/shared/messages';
 
@@ -58,7 +59,7 @@ export function SummaryView({ tabId, configured, status, text, error, usage, sum
         </div>
       )}
       <div className={`summary-text${status === 'streaming' ? ' streaming-text' : ''}`}>
-        {text}
+        <Markdown content={text} />
       </div>
       {status === 'done' && (
         <>
