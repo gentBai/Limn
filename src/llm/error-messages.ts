@@ -20,6 +20,7 @@ const messages: Record<Locale, Record<ErrorCode, string>> = {
     [ErrorCode.CONTEXT_LENGTH_EXCEEDED]: '内容超出模型上下文长度',
     [ErrorCode.PAGE_NOT_SUPPORTED]: '当前页面不支持（浏览器内置页面）',
     [ErrorCode.OLLAMA_NOT_RUNNING]: '本地模型服务未运行，请检查 Ollama 是否已启动',
+    [ErrorCode.CONNECTION_CLOSED]: '连接已中断，请重试',
   },
   en: {
     [ErrorCode.NO_PROVIDER_CONFIGURED]: 'No model provider configured',
@@ -35,6 +36,7 @@ const messages: Record<Locale, Record<ErrorCode, string>> = {
     [ErrorCode.CONTEXT_LENGTH_EXCEEDED]: 'Content exceeds the model context length',
     [ErrorCode.PAGE_NOT_SUPPORTED]: 'This page is not supported (browser built-in page)',
     [ErrorCode.OLLAMA_NOT_RUNNING]: 'Local model service is not running. Make sure Ollama is started.',
+    [ErrorCode.CONNECTION_CLOSED]: 'Connection was interrupted, please retry',
   },
 };
 

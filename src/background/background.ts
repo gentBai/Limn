@@ -9,6 +9,8 @@ import { ErrorCode } from '@/shared/messages';
 import { initLocale, getLocale } from '@/i18n';
 import { getErrorMessage } from '@/llm/error-messages';
 import { getContentForChat, parseChatPortName } from './chat-flow';
+import { getContent, setContent, deleteContent } from './content-cache';
+import { sendToTabWithRetry } from './tab-messaging';
 import {
   getTabState,
   setPageContent,
@@ -20,15 +22,14 @@ import {
 // Initialize locale on service worker startup (browser language or user override)
 initLocale();
 
-// Cache: tabId -> PageContent (in-memory, avoids re-extraction wait)
-const contentCache = new Map<number, any>();
-
+/** Extract page content for a tab, reusing the session-cached result when
+ *  available; otherwise ask the content script (with retry for the loader race). */
 async function extractFromTab(tabId: number): Promise<any> {
-  const cached = contentCache.get(tabId);
+  const cached = await getContent(tabId);
   if (cached) return cached;
   let response: any;
   try {
-    response = await chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_CONTENT' });
+    response = await sendToTabWithRetry(tabId, { type: 'EXTRACT_CONTENT' });
   } catch (e: any) {
     console.error('[AI Reader] sendMessage to tab failed:', e?.message);
     throw new LLMError(ErrorCode.EXTRACTION_FAILED, getErrorMessage(ErrorCode.EXTRACTION_FAILED, getLocale()), false);
@@ -37,7 +38,7 @@ async function extractFromTab(tabId: number): Promise<any> {
     console.error('[AI Reader] extract returned empty, response:', response);
     throw new LLMError(ErrorCode.EXTRACTION_FAILED, getErrorMessage(ErrorCode.EXTRACTION_FAILED, getLocale()), false);
   }
-  contentCache.set(tabId, response);
+  await setContent(tabId, response);
   await setPageContent(tabId, response);
   return response;
 }
@@ -164,7 +165,7 @@ chrome.runtime.onConnect.addListener((port) => {
 
         // 2. Load current state (page content + full history)
         const state = await getTabState(tabId);
-        const content = await getContentForChat(tabId, contentCache.get(tabId), state, extractFromTab);
+        const content = await getContentForChat(tabId, await getContent(tabId), state, extractFromTab);
         const client = createLLMClient(settings);
         const messages = buildChatPrompt(content, state.chat, locale);
 
@@ -203,11 +204,18 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
 // Listen for tab close — clean up its TabState
 chrome.tabs.onRemoved.addListener((tabId) => {
-  contentCache.delete(tabId);
+  deleteContent(tabId);
   clearTabState(tabId);
 });
 
-// Open sidePanel on icon click
+// Open sidePanel on icon click. Registered at every SW startup (top-level) and
+// on install/startup so the behavior survives the SW being evicted.
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((e) => console.error('[AI Reader] setPanelBehavior failed:', e));
 chrome.runtime.onInstalled.addListener(() => {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+});
+chrome.runtime.onStartup.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 });
