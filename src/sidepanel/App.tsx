@@ -49,13 +49,25 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Init: get current tab + load state
+  // Init: get current tab + load state. Retry a few times because, right after
+  // the service worker wakes up, tabs.query can momentarily return no active tab.
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const id = tabs[0]?.id ?? 0;
-      setTabId(id);
-      loadTabState(id);
-    });
+    let cancelled = false;
+    const resolveActiveTab = async () => {
+      for (const delay of [0, 200, 400]) {
+        await new Promise((r) => setTimeout(r, delay));
+        if (cancelled) return;
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.id) {
+          setTabId(tab.id);
+          loadTabState(tab.id);
+          return;
+        }
+      }
+      // Fallback: keep tabId 0 (UI shows empty state rather than erroring).
+    };
+    resolveActiveTab();
+    return () => { cancelled = true; };
   }, [loadTabState]);
 
   // Listen for tab switch (background broadcast) + chat updates

@@ -10,7 +10,7 @@ interface ErrorBoxProps {
 }
 
 export function ErrorBox({ code, message, onRetry, onAction, actionLabel }: ErrorBoxProps) {
-  const canRetry = code === 'NETWORK_ERROR' || code === 'RATE_LIMITED' || code === 'MODEL_ERROR';
+  const canRetry = code === 'NETWORK_ERROR' || code === 'RATE_LIMITED' || code === 'MODEL_ERROR' || code === 'CONNECTION_CLOSED';
   const showSettings = code === 'INVALID_API_KEY' || code === 'MISSING_API_KEY';
   return (
     <div className="error-box">
